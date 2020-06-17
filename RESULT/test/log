@@ -1,0 +1,22 @@
+-----setting-----
+N_EPOCH : 20
+D_MODEL : 512
+N_LAYERS : 6
+N_HEAD : 8
+BATCH SIZE : 100
+DROPOUT : 0.1
+SAVE_MODEL : test
+LOG_PATH : RESULT/test/log
+
+-----training-----
+-----setting-----
+N_EPOCH : 20
+D_MODEL : 512
+N_LAYERS : 6
+N_HEAD : 8
+BATCH SIZE : 100
+DROPOUT : 0.1
+SAVE_MODEL : test
+LOG_PATH : RESULT/test/log
+
+-----training-----
