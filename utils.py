@@ -44,11 +44,11 @@ def output_log(train_loss, valid_loss, file_path):
     file = open("transformer.log", "w", encoding="utf8")
 
 #batch_size = 1のみ   
-def generate_sentence(seq, TRG, file):
+def generate_sentence(seq, Dict, file):
     seq_len = len(seq)
     sentence_list = []
     for s in range(seq_len):
-         word = TRG.vocab.itos[seq[s].item()]
+         word = Dict[seq[s].item()]
          if word == "<eos>":
              break
          if word == "<sos>":

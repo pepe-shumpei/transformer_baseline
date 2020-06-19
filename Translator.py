@@ -40,10 +40,10 @@ class Translator(nn.Module):
     def _model_decode(self, trg_seq, enc_output, src_mask):
         #trg_mask = get_subsequent_mask(trg_seq)
         trg_seq_len = trg_seq.size(1)
-        trg_mask = no_peak_mask(trg_seq_len).to(trg_seq.device)
+        trg_mask = no_peak_mask(trg_seq_len).to(enc_output.device)
         #dec_output, *_ = self.model.decoder(trg_seq, trg_mask, enc_output, src_mask)
         #dec_output, *_ = self.model.decoder(trg_seq, enc_output, src_mask, trg_mask)
-        dec_output = self.model.decoder(trg_seq, enc_output, src_mask, trg_mask)
+        dec_output = self.model.decoder(trg_seq.to(enc_output.device), enc_output, src_mask, trg_mask)
         return F.softmax(self.model.out(dec_output), dim=-1)
 
 
@@ -114,7 +114,7 @@ class Translator(nn.Module):
                 # -- check if all beams contain eos
                 if (eos_locs.sum(1) > 0).sum(0).item() == beam_size:
                     # TODO: Try different terminate conditions.
-                    _, ans_idx = scores.div(seq_lens.float() ** alpha).max(0)
+                    _, ans_idx = scores.div(seq_lens.to(enc_output.device) ** alpha).max(0)
                     ans_idx = ans_idx.item()
                     break
         #return gen_seq[ans_idx][:seq_lens[ans_idx]].tolist()

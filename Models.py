@@ -95,7 +95,8 @@ class Transformer(nn.Module):
 
         else:
             e_outputs = self.encoder(src, src_mask)
-            trg_len = trg.size(1)
+            #trg_len = trg.size(1)
+            trg_len = 80
             out = trg[:,:1]
             for i in range(1, trg_len):
                 trg_mask = no_peak_mask(i).to(out.device)

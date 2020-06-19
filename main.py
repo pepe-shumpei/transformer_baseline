@@ -171,7 +171,7 @@ def checkpoint_averaging(opt):
        
         #print("[Epoch %d] [Valid BLEU %.3f]" &(epoch, valid_bleu))
         with open(opt.log, "a") as f:
-            f.write("[Epoch %d] [Valid BLEU %.3f]\n" %(epoch, valid_bleu))
+            f.write("[Epoch %d] [Valid BLEU %.3f]\n" %(epoch, valid_bleu*100))
         
 
 def main():
