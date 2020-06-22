@@ -183,6 +183,7 @@ def main():
     os.makedirs(model_path, exist_ok=True)
     os.makedirs(model_ave_path, exist_ok=True)
 
+    torch.cuda.set_device(torch.device('cuda:' + opt.cuda_n))
     opt.device = torch.device("cuda:" + opt.cuda_n)
 
     opt.log = "RESULT/" + opt.save + "/log"
