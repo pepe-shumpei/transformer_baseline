@@ -2,11 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import LambdaLR
+from torch.utils.data import DataLoader
 from apex import amp
 
 import time
 import argparse
 import os 
+import random
 from nltk.translate.bleu_score import corpus_bleu
 
 from Models import Transformer
@@ -40,9 +42,12 @@ def parse():
     
     return opt
 
-def train_epoch(model, optimizer, scheduler, train_iterator, padding_idx, device):
+def train_epoch(model, optimizer, scheduler, train_data_set, batch_sampler, padding_idx, device):
     model.train()
     epoch_loss = 0
+    random.shuffle(batch_sampler) #あとでこれは1epochごとにshuffleするようにする
+    train_iterator = DataLoader(train_data_set, batch_sampler=batch_sampler, collate_fn=train_data_set.collater)
+
     for iters in train_iterator:
         src = iters[0].to(device)
         trg = iters[1].to(device)
@@ -118,8 +123,10 @@ def train(opt):
 
         start_time = time.time()
 
-        train_loss = train_epoch(opt.model, opt.optimizer, opt.scheduler, opt.train_iterator, opt.padding_idx, opt.device)
+        train_loss = train_epoch(opt.model, opt.optimizer, opt.scheduler, opt.train_data_set, opt.batch_sampler, opt.padding_idx, opt.device)
+        torch.cuda.empty_cache()
         valid_bleu = valid_epoch(opt.model, opt.valid_iterator, opt.padding_idx, opt.device, opt.Dict)
+        torch.cuda.empty_cache()
 
         end_time = time.time()
 

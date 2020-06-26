@@ -37,14 +37,14 @@ def test_epoch(model, test_iterator, device, Dict, load, pad_idx):
         file.close
         print()
 
-def test_epoch_beam(translator, test_iterator, Dict, device, load):
+def test_epoch_beam(translator, test_iterator, SrcDict, TrgDict, device, load):
     
     PATH = "RESULT/" + load + "/output.txt"
     file = open(PATH , "w", encoding="utf8")
     for iters in test_iterator:
         src = iters[0].to(device)
         sentence = translator.translate_sentence(src)
-        generate_sentence(sentence, Dict, file) 
+        generate_sentence(sentence, TrgDict, file) 
     file.close
 
 def main():
@@ -88,7 +88,7 @@ def main():
         beamsize = 4
         max_seq_len = 80
         translator = Translator(model, beamsize, max_seq_len, opt.padding_idx, opt.padding_idx, opt.trg_sos_idx, opt.trg_eos_idx)
-        test_epoch_beam(translator, opt.test_iterator, opt.Dict, opt.device, opt.load)
+        test_epoch_beam(translator, opt.test_iterator, opt.SrcDict, opt.Dict, opt.device, opt.load)
 
 if __name__ == "__main__":
     main()

@@ -3,7 +3,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-#from transformer.Models import Transformer, get_pad_mask, get_subsequent_mask
 
 from utils import no_peak_mask, create_masks
 
@@ -27,7 +26,8 @@ class Translator(nn.Module):
         self.model = model
         self.model.eval()
 
-        self.register_buffer('init_seq', torch.LongTensor([[trg_bos_idx]]))
+        #self.register_buffer('init_seq', torch.LongTensor([[trg_bos_idx]]))
+        self.register_buffer('init_seq', torch.zeros(10,1).fill_(trg_bos_idx).to(torch.long))
         self.register_buffer(
             'blank_seqs', 
             torch.full((beam_size, max_seq_len), trg_pad_idx, dtype=torch.long))
@@ -91,7 +91,7 @@ class Translator(nn.Module):
     def translate_sentence(self, src_seq):
         # Only accept batch size equals to 1 in this function.
         # TODO: expand to batch operation.
-        assert src_seq.size(0) == 1
+        #assert src_seq.size(0) == 1
 
         src_pad_idx, trg_eos_idx = self.src_pad_idx, self.trg_eos_idx 
         max_seq_len, beam_size, alpha = self.max_seq_len, self.beam_size, self.alpha 
