@@ -1,14 +1,26 @@
 source_path = "../../train_data/train.en.16000"
 target_path = "../../train_data/train.ja.16000"
 
+min_token_num = 0
+
 def GetVocab(file_name):
     vocab = {}
+    count_vocab = {}
     with open(file_name) as lines:
         for line in lines:
             words = line.split()
             for word in words:
                 if word not in vocab:
                     vocab[word] = len(vocab) + 1
+                    count_vocab[word] = 1
+                else:
+                    count_vocab[word] += 1
+
+    #出現回数で単語をカットする
+    for word in count_vocab:
+        if count_vocab[word] < min_token_num :
+            del vocab[word]
+
     return vocab
 
 source_vocab = GetVocab(source_path)

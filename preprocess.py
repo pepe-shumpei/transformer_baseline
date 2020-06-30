@@ -73,7 +73,6 @@ def preprocess(opt):
     test_en = "../train_data/test.en.16000"
     test_ja = "../train_data/test.ja.16000"
 
-
     source_vocab = "vocab/source_vocab"
     target_vocab = "vocab/target_vocab"
 
