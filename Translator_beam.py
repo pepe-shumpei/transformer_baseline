@@ -26,11 +26,11 @@ class Translator(nn.Module):
         self.model = model
         self.model.eval()
 
-        self.register_buffer('init_seq', torch.LongTensor([[trg_bos_idx]]))
-        #self.register_buffer('init_seq', torch.zeros(10,1).fill_(trg_bos_idx).to(torch.long))
+        #self.register_buffer('init_seq', torch.LongTensor([[trg_bos_idx]]))
+        self.register_buffer('init_seq', torch.zeros(151,1).fill_(trg_bos_idx).to(torch.long))
         self.register_buffer(
             'blank_seqs', 
-            torch.full((beam_size, max_seq_len), trg_pad_idx, dtype=torch.long))
+            torch.full((beam_size*151, max_seq_len), trg_pad_idx, dtype=torch.long))
         self.blank_seqs[:, 0] = self.trg_bos_idx
         self.register_buffer(
             'len_map', 
@@ -50,20 +50,23 @@ class Translator(nn.Module):
     def _get_init_state(self, src_seq, src_mask):
         beam_size = self.beam_size
 
-        enc_output, *_ = self.model.encoder(src_seq, src_mask)
+        enc_output = self.model.encoder(src_seq, src_mask)
         dec_output = self._model_decode(self.init_seq, enc_output, src_mask)
         
         best_k_probs, best_k_idx = dec_output[:, -1, :].topk(beam_size)
 
-        scores = torch.log(best_k_probs).view(beam_size)
+        #scores = torch.log(best_k_probs).view(beam_size)
+        scores = torch.log(best_k_probs)
         gen_seq = self.blank_seqs.clone().detach()
-        gen_seq[:, 1] = best_k_idx[0]
-        enc_output = enc_output.repeat(beam_size, 1, 1)
+        #gen_seq[:, 1] = best_k_idx[0]
+        gen_seq[:, 1] = best_k_idx.view(-1)
+        #enc_output = enc_output.repeat(beam_size, 1, 1)
+        enc_output = enc_output.repeat_interleave(beam_size, dim=0)
         return enc_output, gen_seq, scores
 
 
     def _get_the_best_score_and_idx(self, gen_seq, dec_output, scores, step):
-        assert len(scores.size()) == 1
+        #assert len(scores.size()) == 1
         
         beam_size = self.beam_size
 
@@ -71,13 +74,18 @@ class Translator(nn.Module):
         best_k2_probs, best_k2_idx = dec_output[:, -1, :].topk(beam_size)
 
         # Include the previous scores.
-        scores = torch.log(best_k2_probs).view(beam_size, -1) + scores.view(beam_size, 1)
+        #scores = torch.log(best_k2_probs).view(beam_size, -1) + scores.view(beam_size, 1)
+        scores = torch.log(best_k2_probs).view(151, beam_size*4) + scores.repeat_interleave(beam_size, dim=1)
 
         # Get the best k candidates from k^2 candidates.
-        scores, best_k_idx_in_k2 = scores.view(-1).topk(beam_size)
+        #scores, best_k_idx_in_k2 = scores.view(-1).topk(beam_size)
+        scores, best_k_idx_in_k2 = scores.topk(beam_size)
  
         # Get the corresponding positions of the best k candidiates.
-        best_k_r_idxs, best_k_c_idxs = best_k_idx_in_k2 // beam_size, best_k_idx_in_k2 % beam_size
+        #best_k_r_idxs, best_k_c_idxs = best_k_idx_in_k2 // beam_size, best_k_idx_in_k2 % beam_size
+        best_k_r_idxs = best_k_idx_in_k2.view(-1) // 4 + torch.arange(0,604,4).repeat_interleave(4).to(best_k_idx_in_k2.device)
+        best_k_c_idxs = best_k_idx_in_k2.view(-1) % 4
+
         best_k_idx = best_k2_idx[best_k_r_idxs, best_k_c_idxs]
 
         # Copy the corresponding previous tokens.
@@ -97,15 +105,28 @@ class Translator(nn.Module):
         max_seq_len, beam_size, alpha = self.max_seq_len, self.beam_size, self.alpha 
 
         with torch.no_grad():
-            #src_mask = get_pad_mask(src_seq, src_pad_idx)
             src_mask , _ = create_masks(src_seq, None, src_seq.device, src_pad_idx)
             enc_output, gen_seq, scores = self._get_init_state(src_seq, src_mask)
 
             ans_idx = 0   # default
+            final_scores = torch.ones(151,4)
+            src_mask = src_mask.repeat_interleave(beam_size, dim=0)
             for step in range(2, max_seq_len):    # decode up to max length
                 dec_output = self._model_decode(gen_seq[:, :step], enc_output, src_mask)
                 gen_seq, scores = self._get_the_best_score_and_idx(gen_seq, dec_output, scores, step)
 
+                #終了文の検索(これだと時間かかりすぎ)
+                for i in range(604):
+                    for j in range(80):
+                        if gen_seq[i][j] == trg_eos_idx:
+                            x = i // 4
+                            y = i % 4
+                            final_scores[x][y] = scores[x][y]
+                            break
+
+
+                
+                """
                 # Check if all path finished
                 # -- locate the eos in the generated sequences
                 eos_locs = gen_seq == trg_eos_idx   
@@ -117,5 +138,21 @@ class Translator(nn.Module):
                     _, ans_idx = scores.div(seq_lens.to(enc_output.device) ** alpha).max(0)
                     ans_idx = ans_idx.item()
                     break
+                """
+            #文の長さの計算
+            seq_lens = torch.ones(151,4).to(gen_seq.device)
+            for i in range(604):
+                for j in range(80):
+                    if gen_seq[i][j] == trg_eos_idx:
+                        x = i // 4
+                        y = i % 4
+                        seq_lens[x][y] = j+1
+                        break
+            
+            _, ans_idx = final_scores.div(seq_lens ** alpha).max(1)
+            ans_idx = ans_idx%4 + torch.arange(0,604,4).to(ans_idx.device)
+
+
         #return gen_seq[ans_idx][:seq_lens[ans_idx]].tolist()
-        return gen_seq[ans_idx][:seq_lens[ans_idx]]
+        #return gen_seq[ans_idx][:seq_lens[ans_idx]]
+        return gen_seq[ans_idx]

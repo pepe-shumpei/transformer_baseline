@@ -4,6 +4,7 @@ from dataset import MyDataset
 
 import random
 
+"""
 def create_batch_sampler(src, trg):
     indices = torch.arange(len(src)).tolist()
     sorted_indices = sorted(indices, key=lambda idx: len(src[idx])+len(trg[idx]))
@@ -31,6 +32,37 @@ def create_batch_sampler(src, trg):
             break
 
     return batch_indices
+"""
+
+def create_batch_sampler(src, trg):
+    indices = torch.arange(len(src)).tolist()
+    random.shuffle(indices)
+    indices = sorted(indices, key=lambda idx: len(src[idx]))
+    sorted_indices = sorted(indices, key=lambda idx: len(trg[idx]))
+
+    batch_indices = []
+    idx = 0
+    while True:
+        indices = []
+        num_src_token = 0
+        num_trg_token = 0
+        max_token = 8000
+        while True:
+            indices.append(sorted_indices[idx])
+            num_trg_token += len(trg[sorted_indices[idx]])
+            idx += 1
+            if len(src) == idx:
+                break
+            if num_trg_token > max_token:
+                break
+        
+        batch_indices.append(indices)
+
+        if len(src) == idx:
+            break
+
+    return batch_indices
+
 
 def preprocess(opt):
     
@@ -77,7 +109,7 @@ def preprocess(opt):
     valid_data_set = MyDataset(valid_source, valid_target)
     valid_iter = DataLoader(valid_data_set, batch_size=batch_size, collate_fn=valid_data_set.collater, shuffle=False)
     test_data_set = MyDataset(test_source, test_target)
-    test_iter = DataLoader(test_data_set, batch_size=10, collate_fn=valid_data_set.collater, shuffle=False)
+    test_iter = DataLoader(test_data_set, batch_size=1, collate_fn=valid_data_set.collater, shuffle=False)
 
     padding_idx = source_dict["<pad>"]
     trg_sos_idx = source_dict["<sos>"]
