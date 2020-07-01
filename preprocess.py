@@ -46,7 +46,7 @@ def create_batch_sampler(src, trg):
         indices = []
         num_src_token = 0
         num_trg_token = 0
-        max_token = 8000
+        max_token = 5000
         while True:
             indices.append(sorted_indices[idx])
             num_trg_token += len(trg[sorted_indices[idx]])
