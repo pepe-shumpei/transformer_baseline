@@ -41,7 +41,7 @@ def parse():
     opt = parser.parse_args()
     
     return opt
-
+"""
 def train_epoch(model, optimizer, scheduler, train_data_set, batch_sampler, padding_idx, device):
     model.train()
     epoch_loss = 0
@@ -71,6 +71,7 @@ def train_epoch(model, optimizer, scheduler, train_data_set, batch_sampler, padd
         epoch_loss += loss.item()
 
     return epoch_loss/len(train_iterator)
+"""
 
 #lossを計算できるようにする。
 def valid_epoch(model, valid_iterator, padding_idx, device, Dict):
@@ -90,7 +91,7 @@ def valid_epoch(model, valid_iterator, padding_idx, device, Dict):
             sentence_to_list(ref_sentence_list, trg, Dict, ref=True)
         bleu_score = corpus_bleu(ref_sentence_list, gen_sentence_list)
         return bleu_score
-
+"""
 def train(opt):
     #train and validation 
 
@@ -112,8 +113,8 @@ def train(opt):
             f.write("[Epoch %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" % (epoch+1, train_loss, valid_bleu*100, end_time - start_time))
 
         save_model(opt.model, epoch+1, opt.save_model)
-
 """
+
 def train(opt):
     #train and validation 
 
@@ -187,7 +188,6 @@ def train(opt):
         #終了
         if iteration == opt.max_iteration:
             break
-"""
 
 def load_model(model_num, opt):
     model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
