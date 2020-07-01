@@ -19,6 +19,8 @@ def parse():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-epoch', type=int, default=20)
+    parser.add_argument('-max_iteration', type=int, default=100000)
+    parser.add_argument('-check_interval', type=int, default=1250)
     parser.add_argument('-train_b', '--train_batch_size', type=int, default=100)
     parser.add_argument('-test_b', '--test_batch_size', type=int, default=1)
 
@@ -67,6 +69,7 @@ def train_epoch(model, optimizer, scheduler, train_data_set, batch_sampler, padd
         optimizer.step()
         scheduler.step()
         epoch_loss += loss.item()
+
     return epoch_loss/len(train_iterator)
 
 #lossを計算できるようにする。
@@ -87,7 +90,6 @@ def valid_epoch(model, valid_iterator, padding_idx, device, Dict):
             sentence_to_list(ref_sentence_list, trg, Dict, ref=True)
         bleu_score = corpus_bleu(ref_sentence_list, gen_sentence_list)
         return bleu_score
-
 
 def train(opt):
     #train and validation 
@@ -110,6 +112,82 @@ def train(opt):
             f.write("[Epoch %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" % (epoch+1, train_loss, valid_bleu*100, end_time - start_time))
 
         save_model(opt.model, epoch+1, opt.save_model)
+
+"""
+def train(opt):
+    #train and validation 
+
+    model = opt.model
+    optimizer = opt.optimizer
+    scheduler = opt.scheduler
+    train_data_set = opt.train_data_set
+    batch_sampler = opt.batch_sampler
+    valid_iterator = opt.valid_iterator
+    padding_idx = opt.padding_idx
+    device = opt.device
+    Dict = opt.Dict
+
+    iteration = 0
+    num_save = 0
+    train_loss = 0
+    start_time = time.time()
+    with open(opt.log, "a") as f:
+        f.write("\n-----training-----\n")
+
+    for epoch in range(opt.epoch):
+        model.train()
+        random.shuffle(batch_sampler) 
+        train_iterator = DataLoader(train_data_set, batch_sampler=batch_sampler, collate_fn=train_data_set.collater)
+
+        for iters in train_iterator:
+            src = iters[0].to(device)
+            trg = iters[1].to(device)
+
+            trg_input = trg[:, :-1]
+            src_mask, trg_mask = create_masks(src, trg_input, device, padding_idx)
+            optimizer.zero_grad()
+            preds = model(src, trg_input, src_mask, trg_mask, train=True)
+            preds = preds.view(-1, preds.size(-1))
+            ys = trg[:, 1:].contiguous().view(-1)
+
+            #loss = F.cross_entropy(preds.view(-1, preds.size(-1)), ys, ignore_index=padding_idx)
+            loss = cal_loss(preds, ys, padding_idx, smoothing=True)
+
+            #loss.backward()
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+
+            optimizer.step()
+            scheduler.step()
+            train_loss += loss.item()
+
+            iteration += 1
+
+            #validation
+            if iteration % opt.check_interval == 0:
+                torch.cuda.empty_cache()
+                valid_bleu = valid_epoch(model, valid_iterator, padding_idx, device, Dict)
+                torch.cuda.empty_cache()
+
+                train_loss = train_loss/opt.check_interval
+                num_save += 1
+                end_time = time.time()
+                with open(opt.log, "a") as f:
+                    f.write("[Num Save %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" \
+                            % (num_save, train_loss, valid_bleu*100, end_time - start_time))
+                save_model(model, num_save, opt.save_model)
+                model.train()
+                start_time = time.time()
+                train_loss = 0
+
+            #終了
+            if iteration == opt.max_iteration:
+                break
+
+        #終了
+        if iteration == opt.max_iteration:
+            break
+"""
 
 def load_model(model_num, opt):
     model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
@@ -140,8 +218,9 @@ def checkpoint_averaging(opt):
     with open(opt.log, "a") as f:
         f.write("\n-----checkpoint averaging-----\n")
 
+    max_epoch = opt.max_iteration/opt.check_interval
     best_bleu=-1
-    for epoch in range(5, opt.epoch+1):
+    for epoch in range(5, max_epoch+1):
         average_model(epoch, opt)
         valid_bleu = valid_epoch(opt.model, opt.valid_iterator, opt.padding_idx, opt.device, opt.Dict)
 
