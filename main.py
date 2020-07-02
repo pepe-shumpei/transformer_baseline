@@ -218,7 +218,7 @@ def checkpoint_averaging(opt):
     with open(opt.log, "a") as f:
         f.write("\n-----checkpoint averaging-----\n")
 
-    max_epoch = opt.max_iteration/opt.check_interval
+    max_epoch = int(opt.max_iteration/opt.check_interval)
     best_bleu=-1
     for epoch in range(5, max_epoch+1):
         average_model(epoch, opt)

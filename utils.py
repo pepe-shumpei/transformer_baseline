@@ -39,10 +39,6 @@ def lr_schedule(step):
     b = min([step ** (-0.5), step*4000**(-1.5)])
     return a * b 
 
-#作成中
-def output_log(train_loss, valid_loss, file_path):
-    file = open("transformer.log", "w", encoding="utf8")
-
 #batch_size = 1のみ   
 def generate_sentence(seq, Dict, file):
     seq_len = len(seq)
@@ -83,10 +79,17 @@ def sentence_to_list(sentence_list, seq, Dict, ref=False):
             if word == "<eos>":
                 break
             sentence.append(word)
+        sentence = remove_at(sentence)
         if ref:
             sentence_list.append([sentence])
         else:
             sentence_list.append(sentence)
+#remove @@
+def remove_at(sentence_list):
+    sentence_str = " ".join(sentence_list)
+    sentence_str = sentence_str.replace("@@ ","")
+    sentence_list = sentence_str.split()
+    return sentence_list
 
 def cal_loss(pred, gold, trg_pad_idx, smoothing=False):
     ''' Calculate cross entropy loss, apply label smoothing if needed. '''
