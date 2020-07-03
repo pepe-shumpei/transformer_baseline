@@ -1,9 +1,8 @@
 source_path = "../../train_data/train.en.16000"
 target_path = "../../train_data/train.ja.16000"
 
-min_token_num = 0
 
-def GetVocab(file_name):
+def GetVocab(file_name, min_token_num=0):
     vocab = {}
     count_vocab = {}
     with open(file_name) as lines:

@@ -2,6 +2,7 @@ import torch
 from preprocessing import *
 from dataset import MyDataset
 
+
 import random
 
 def create_batch_sampler(src, trg):
@@ -36,19 +37,31 @@ def create_batch_sampler(src, trg):
 
 def preprocess(opt):
     
-    train_en = "../train_data/train.en.16000"
-    train_ja = "../train_data/train.ja.16000"
-    valid_en = "../train_data/dev.en.16000"
-    valid_ja = "../train_data/dev.ja.16000"
-    test_en = "../train_data/test.en.16000"
-    test_ja = "../train_data/test.ja.16000"
+    train_src = "../train_data/train.en.16000"
+    train_trg = "../train_data/train.ja.16000"
+    valid_src = "../train_data/dev.en.16000"
+    valid_trg = "../train_data/dev.ja.16000"
+    test_src = "../train_data/test.en.16000"
+    test_trg = "../train_data/test.ja.16000"
 
-    source_vocab = "vocab/source_vocab"
-    target_vocab = "vocab/target_vocab"
+    source_vocab_path = "RESULT/" + opt.save + "/vocab/source_vocab"
+    target_vocab_path = "RESULT/" + opt.save + "/vocab/target_vocab"
 
+    #create vocab
+    source_vocab = GetVocab(train_src)
+    target_vocab = GetVocab(train_trg)
+    with open(source_vocab_path, "w") as f:
+        for key in source_vocab.keys():
+            f.write(key + "\n")
+
+    with open(target_vocab_path, "w") as f:
+        for key in target_vocab.keys():
+            f.write(key + "\n")
+   
+    #create dict
     pre_data = Preprocess()
-    source_dict = pre_data.getVocab(source_vocab)
-    target_dict = pre_data.getVocab(target_vocab)
+    source_dict = pre_data.getVocab(source_vocab_path)
+    target_dict = pre_data.getVocab(target_vocab_path)
 
     translate_dict = {}
     for key, value in target_dict.items():
@@ -61,12 +74,12 @@ def preprocess(opt):
     src_size = len(source_dict)
     trg_size = len(target_dict)
 
-    train_source = pre_data.load(train_en , 1, source_dict)
-    train_target = pre_data.load(train_ja , 1, target_dict)
-    valid_source = pre_data.load(valid_en , 1, source_dict)
-    valid_target = pre_data.load(valid_ja , 1, target_dict)
-    test_source = pre_data.load(test_en , 1, source_dict)
-    test_target = pre_data.load(test_ja , 1, target_dict)
+    train_source = pre_data.load(train_src , 1, source_dict)
+    train_target = pre_data.load(train_trg , 1, target_dict)
+    valid_source = pre_data.load(valid_src , 1, source_dict)
+    valid_target = pre_data.load(valid_trg , 1, target_dict)
+    test_source = pre_data.load(test_src , 1, source_dict)
+    test_target = pre_data.load(test_trg , 1, target_dict)
 
     batch_sampler = create_batch_sampler(train_source, train_target)
     #random.shuffle(batch_sampler) #あとでこれは1epochごとにshuffleするようにする

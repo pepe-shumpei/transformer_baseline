@@ -248,8 +248,10 @@ def main():
     opt = parse()
     model_path = "RESULT/"+ opt.save + "/model"
     model_ave_path = "RESULT/" + opt.save + "/model_ave"
+    vocab_path = "RESULT/" + opt.save + "/vocab"
     os.makedirs(model_path, exist_ok=True)
     os.makedirs(model_ave_path, exist_ok=True)
+    os.makedirs(vocab_path, exist_ok=True)
 
     torch.cuda.set_device(torch.device('cuda:' + opt.cuda_n))
     opt.device = torch.device("cuda:" + opt.cuda_n)
