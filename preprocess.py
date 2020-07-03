@@ -4,36 +4,6 @@ from dataset import MyDataset
 
 import random
 
-"""
-def create_batch_sampler(src, trg):
-    indices = torch.arange(len(src)).tolist()
-    sorted_indices = sorted(indices, key=lambda idx: len(src[idx])+len(trg[idx]))
-
-    batch_indices = []
-    idx = 0
-    while True:
-        indices = []
-        num_src_token = 0
-        num_trg_token = 0
-        max_token = 8000
-        while True:
-            indices.append(sorted_indices[idx])
-            num_src_token += len(src[sorted_indices[idx]])
-            num_trg_token += len(trg[sorted_indices[idx]])
-            idx += 1
-            if len(src) == idx:
-                break
-            if num_src_token > max_token or num_trg_token > max_token:
-                break
-        
-        batch_indices.append(indices)
-
-        if len(src) == idx:
-            break
-
-    return batch_indices
-"""
-
 def create_batch_sampler(src, trg):
     indices = torch.arange(len(src)).tolist()
     random.shuffle(indices)
@@ -118,8 +88,6 @@ def preprocess(opt):
     #opt.train_iterator = train_iter
     opt.valid_iterator = valid_iter
     opt.test_iterator = test_iter
-    #opt.SRC = SRC
-    #opt.TRG = TRG
     opt.Dict = translate_dict
     opt.SrcDict = SrcDict
     opt.train_data_set = train_data_set

@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
+from cupy.cuda import cudnn
 from apex import amp
 
 import time
@@ -14,6 +15,14 @@ from nltk.translate.bleu_score import corpus_bleu
 from Models import Transformer
 from utils import *
 from preprocess import preprocess
+
+# cuDNNを使用しない  
+seed = 88
+cudnn.deterministic = True  
+random.seed(seed)  
+torch.manual_seed(seed)  
+# cuda でのRNGを初期化  
+torch.cuda.manual_seed_all(seed)  
 
 def parse():
     parser = argparse.ArgumentParser()
