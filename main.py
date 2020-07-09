@@ -100,6 +100,7 @@ def valid_epoch(model, valid_iterator, padding_idx, device, Dict):
             sentence_to_list(ref_sentence_list, trg, Dict, ref=True)
         bleu_score = corpus_bleu(ref_sentence_list, gen_sentence_list)
         return bleu_score
+
 """
 def train(opt):
     #train and validation 
@@ -141,6 +142,7 @@ def train(opt):
     num_save = 0
     train_loss = 0
     start_time = time.time()
+    best_bleu = -1
     with open(opt.log, "a") as f:
         f.write("\n-----training-----\n")
 
@@ -185,21 +187,25 @@ def train(opt):
                 with open(opt.log, "a") as f:
                     f.write("[Num Save %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" \
                             % (num_save, train_loss, valid_bleu*100, end_time - start_time))
-                save_model(model, num_save, opt.save_model)
+                
+                #save model
+                if valid_bleu > best_bleu:
+                    best_bleu = valid_bleu
+                    torch.save(opt.model.state_dict(), opt.save_model+"/best.model")
+                    with open(opt.log, "a") as f:
+                        f.write("save %dth model!!\n" %(num_save))
+
                 model.train()
                 start_time = time.time()
                 train_loss = 0
 
             #終了
             if iteration == opt.max_iteration:
-                break
-
-        #終了
-        if iteration == opt.max_iteration:
-            break
+                return
 
 def load_model(model_num, opt):
-    model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
+    #model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
+    model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
     model.load_state_dict(torch.load(opt.save_model + "/model_save" + str(model_num)))
     return model
 
@@ -230,13 +236,14 @@ def checkpoint_averaging(opt):
     max_epoch = int(opt.max_iteration/opt.check_interval)
     best_bleu=-1
     for epoch in range(5, max_epoch+1):
+        torch.cuda.empty_cache()
         average_model(epoch, opt)
+
         valid_bleu = valid_epoch(opt.model, opt.valid_iterator, opt.padding_idx, opt.device, opt.Dict)
 
         if valid_bleu > best_bleu:
             best_bleu = valid_bleu
             torch.save(opt.model.state_dict(), opt.save_model+"_ave/best.model")
-            
        
         with open(opt.log, "a") as f:
             f.write("[Epoch %d] [Valid BLEU %.3f]\n" %(epoch, valid_bleu*100))
@@ -271,12 +278,12 @@ def main():
     # write a setting 
     with open(opt.log, "a") as f:
         f.write("-----setting-----\n")
-        f.write("N_EPOCH : %d\nD_MODEL : %d\nN_LAYERS : %d\nN_HEAD : %d\nBATCH SIZE : %d\nDROPOUT : %.1f\nSAVE_MODEL : %s\nLOG_PATH : %s\n"
-                %(opt.epoch, opt.d_model, opt.n_layers, opt.n_head, opt.train_batch_size, opt.dropout, opt.save, opt.log))
+        f.write("MAX ITERATION : %d \n CHECK INTERVAL : %d \n D_MODEL : %d \n N_LAYERS : %d \n N_HEAD : %d \n BATCH SIZE : %d \n DROPOUT : %.1f \n SAVE_MODEL : %s \n LOG_PATH : %s \n GPU NAME: %s \n GPU NUM %s" \
+                 %(opt.max_iteration , opt.check_interval, opt.d_model, opt.n_layers, opt.n_head, opt.train_batch_size, opt.dropout, opt.save, opt.log, torch.cuda.get_device_name(), opt.cuda_n))
         
 
     train(opt)
-    checkpoint_averaging(opt)
+    #checkpoint_averaging(opt)
 
 if __name__ == "__main__":
     main()

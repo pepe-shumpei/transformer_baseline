@@ -37,12 +37,12 @@ def create_batch_sampler(src, trg):
 
 def preprocess(opt):
     
-    train_src = "../train_data/train.en.16000"
-    train_trg = "../train_data/train.ja.16000"
-    valid_src = "../train_data/dev.en.16000"
-    valid_trg = "../train_data/dev.ja.16000"
-    test_src = "../train_data/test.en.16000"
-    test_trg = "../train_data/test.ja.16000"
+    train_src = "../ASPEC1.5M/train.en.16000"
+    train_trg = "../ASPEC1.5M/train.ja.16000"
+    valid_src = "../ASPEC1.5M/dev.en.16000"
+    valid_trg = "../ASPEC1.5M/dev.ja.16000"
+    test_src = "../ASPEC1.5M/test.en.16000"
+    test_trg = "../ASPEC1.5M/test.ja.16000"
 
     source_vocab_path = "RESULT/" + opt.save + "/vocab/source_vocab"
     target_vocab_path = "RESULT/" + opt.save + "/vocab/target_vocab"
