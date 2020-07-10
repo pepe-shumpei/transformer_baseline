@@ -64,7 +64,7 @@ class Preprocess():
                 slist.append(UNK)
         return torch.tensor(slist)
 
-def GetVocab(file_name, min_token_num=0):
+def GetVocab(file_name, vocab_size=50000):
     vocab = {}
     count_vocab = {}
     with open(file_name) as lines:
@@ -78,9 +78,19 @@ def GetVocab(file_name, min_token_num=0):
                     count_vocab[word] += 1
 
     #出現回数で単語をカットする
-    for word in count_vocab:
-        if count_vocab[word] < min_token_num :
-            del vocab[word]
+    min_token_num = 1 
+    flag = False
+    while True:
+        min_token_num += 1
+        for word in count_vocab:
+            if count_vocab[word] < min_token_num :
+                if word in vocab:
+                    del vocab[word]
+            if len(vocab) < vocab_size:
+                flag = True
+                break
+        if flag:
+            break
 
     return vocab
 
