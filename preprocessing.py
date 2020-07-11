@@ -86,7 +86,7 @@ def GetVocab(file_name, vocab_size=50000):
             if count_vocab[word] < min_token_num :
                 if word in vocab:
                     del vocab[word]
-            if len(vocab) < vocab_size:
+            if len(vocab) <= vocab_size:
                 flag = True
                 break
         if flag:

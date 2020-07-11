@@ -67,9 +67,15 @@ def main():
     #parser.add_argument('-load_model', type=str, default=None)
     #parser.add_argument('-output_file', type=str, default="output.txt")
     parser.add_argument('-load', type=str, default=None)
+    parser.add_argument('-cuda_n', type=str, default="0")
 
     opt = parser.parse_args()
-    opt.device = torch.device("cuda:0")
+
+    #opt.device = torch.device("cuda:0")
+    torch.cuda.set_device(torch.device('cuda:' + opt.cuda_n))
+    opt.device = torch.device("cuda:" + opt.cuda_n)
+
+    opt.save = opt.load 
     preprocess(opt)
 
     model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
@@ -77,7 +83,7 @@ def main():
     beam = True
 
     #PATH = "trained_model/" + opt.load_model
-    PATH = "RESULT/" + opt.load + "/model_ave/best.model"
+    PATH = "RESULT/" + opt.load + "/model/best.model"
     model.load_state_dict(torch.load(PATH))
     
  

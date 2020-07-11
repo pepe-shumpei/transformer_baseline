@@ -37,12 +37,43 @@ def create_batch_sampler(src, trg):
 
 def preprocess(opt):
     
+    """
+    #ASPEC1.5M EN-JA SUBWORD
     train_src = "../ASPEC1.5M/train.en.16000"
     train_trg = "../ASPEC1.5M/train.ja.16000"
     valid_src = "../ASPEC1.5M/dev.en.16000"
     valid_trg = "../ASPEC1.5M/dev.ja.16000"
     test_src = "../ASPEC1.5M/test.en.16000"
     test_trg = "../ASPEC1.5M/test.ja.16000"
+    """
+
+    #ASPEC1.5M EN-JA WORD
+    train_src = "../ASPEC1.5M/train.en"
+    train_trg = "../ASPEC1.5M/train.ja"
+    valid_src = "../ASPEC1.5M/dev.en"
+    valid_trg = "../ASPEC1.5M/dev.ja"
+    test_src = "../ASPEC1.5M/test.en"
+    test_trg = "../ASPEC1.5M/test.ja"
+
+    """
+    #ASPEC1.5M JA-EN SUBWORD
+    train_src = "../ASPEC1.5M/train.ja.16000"
+    train_trg = "../ASPEC1.5M/train.en.16000"
+    valid_src = "../ASPEC1.5M/dev.ja.16000"
+    valid_trg = "../ASPEC1.5M/dev.en.16000"
+    test_src = "../ASPEC1.5M/test.ja.16000"
+    test_trg = "../ASPEC1.5M/test.en.16000"
+    """
+
+    """
+    #ASPEC1.5M JA-EN WORD
+    train_src = "../ASPEC1.5M/train.ja"
+    train_trg = "../ASPEC1.5M/train.en"
+    valid_src = "../ASPEC1.5M/dev.ja"
+    valid_trg = "../ASPEC1.5M/dev.en"
+    test_src = "../ASPEC1.5M/test.ja"
+    test_trg = "../ASPEC1.5M/test.en"
+    """
 
     source_vocab_path = "RESULT/" + opt.save + "/vocab/source_vocab"
     target_vocab_path = "RESULT/" + opt.save + "/vocab/target_vocab"
