@@ -47,6 +47,7 @@ def preprocess(opt):
     test_trg = "../ASPEC1.5M/test.ja.16000"
     """
 
+    """
     #ASPEC1.5M EN-JA WORD
     train_src = "../ASPEC1.5M/train.en"
     train_trg = "../ASPEC1.5M/train.ja"
@@ -54,6 +55,7 @@ def preprocess(opt):
     valid_trg = "../ASPEC1.5M/dev.ja"
     test_src = "../ASPEC1.5M/test.en"
     test_trg = "../ASPEC1.5M/test.ja"
+    """
 
     """
     #ASPEC1.5M JA-EN SUBWORD
@@ -74,6 +76,44 @@ def preprocess(opt):
     test_src = "../ASPEC1.5M/test.ja"
     test_trg = "../ASPEC1.5M/test.en"
     """
+
+    """
+    #ASPEC1.5M EN-JA SUBWORD1k→1k
+    train_src = "../ASPEC1.5M/train.en.1000"
+    train_trg = "../ASPEC1.5M/train.ja.1000"
+    valid_src = "../ASPEC1.5M/dev.en.1000"
+    valid_trg = "../ASPEC1.5M/dev.ja.1000"
+    test_src = "../ASPEC1.5M/test.en.1000"
+    test_trg = "../ASPEC1.5M/test.ja.1000"
+    """
+
+    """
+    #ASPEC1.5M JA-EN SUBWORD1k→1k
+    train_src = "../ASPEC1.5M/train.ja.1000"
+    train_trg = "../ASPEC1.5M/train.en.1000"
+    valid_src = "../ASPEC1.5M/dev.ja.1000"
+    valid_trg = "../ASPEC1.5M/dev.en.1000"
+    test_src = "../ASPEC1.5M/test.ja.1000"
+    test_trg = "../ASPEC1.5M/test.en.1000"
+    """
+    
+    """
+    #ASPEC1.5M EN-JA SUBWORD1k→16k
+    train_src = "../ASPEC1.5M/train.en.1000"
+    train_trg = "../ASPEC1.5M/train.ja.16000"
+    valid_src = "../ASPEC1.5M/dev.en.1000"
+    valid_trg = "../ASPEC1.5M/dev.ja.16000"
+    test_src = "../ASPEC1.5M/test.en.1000"
+    test_trg = "../ASPEC1.5M/test.ja.16000"
+    """
+
+    #ASPEC1.5M JA-EN SUBWORD1k→16k
+    train_src = "../ASPEC1.5M/train.ja.1000"
+    train_trg = "../ASPEC1.5M/train.en.16000"
+    valid_src = "../ASPEC1.5M/dev.ja.1000"
+    valid_trg = "../ASPEC1.5M/dev.en.16000"
+    test_src = "../ASPEC1.5M/test.ja.1000"
+    test_trg = "../ASPEC1.5M/test.en.16000"
 
     source_vocab_path = "RESULT/" + opt.save + "/vocab/source_vocab"
     target_vocab_path = "RESULT/" + opt.save + "/vocab/target_vocab"
