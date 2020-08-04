@@ -15,6 +15,7 @@ from nltk.translate.bleu_score import corpus_bleu
 from Models import Transformer
 from utils import *
 from preprocess import preprocess
+from Translator import Translator
 
 # cuDNNを使用しない  
 seed = 88
@@ -28,7 +29,7 @@ def parse():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-epoch', type=int, default=20)
-    parser.add_argument('-max_iteration', type=int, default=100000)
+    parser.add_argument('-max_iteration', type=int, default=400000)
     parser.add_argument('-check_interval', type=int, default=1250)
     parser.add_argument('-train_b', '--train_batch_size', type=int, default=100)
     parser.add_argument('-test_b', '--test_batch_size', type=int, default=1)
@@ -47,9 +48,17 @@ def parse():
 
     parser.add_argument('-save', type=str, default=None)
 
+    parser.add_argument('-train_src', type=str, default=None)
+    parser.add_argument('-train_trg', type=str, default=None)
+    parser.add_argument('-valid_src', type=str, default=None)
+    parser.add_argument('-valid_trg', type=str, default=None)
+    parser.add_argument('-test_src', type=str, default=None)
+    parser.add_argument('-test_trg', type=str, default=None)
+
     opt = parser.parse_args()
     
     return opt
+    
 """
 def train_epoch(model, optimizer, scheduler, train_data_set, batch_sampler, padding_idx, device):
     model.train()
@@ -249,6 +258,24 @@ def checkpoint_averaging(opt):
             f.write("[Epoch %d] [Valid BLEU %.3f]\n" %(epoch, valid_bleu*100))
         
 
+def test_epoch_beam(translator, test_iterator, SrcDict, TrgDict, device, load):
+    
+    PATH = "RESULT/" + load + "/output.txt"
+    file = open(PATH , "w", encoding="utf8")
+    for iters in test_iterator:
+        src = iters[0].to(device)
+        sentence = translator.translate_sentence(src)
+        generate_sentence(sentence, TrgDict, file) 
+    file.close
+
+
+def test(opt):
+    torch.cuda.empty_cache()
+    beamsize = 4
+    max_seq_len = 80
+    translator = Translator(opt.model, beamsize, max_seq_len, opt.padding_idx, opt.padding_idx, opt.trg_sos_idx, opt.trg_eos_idx)
+    test_epoch_beam(translator, opt.test_iterator, opt.SrcDict, opt.Dict, opt.device, opt.save)
+
 def main():
 
 
@@ -278,12 +305,23 @@ def main():
     # write a setting 
     with open(opt.log, "a") as f:
         f.write("-----setting-----\n")
-        f.write("MAX ITERATION : %d \n CHECK INTERVAL : %d \n D_MODEL : %d \n N_LAYERS : %d \n N_HEAD : %d \n BATCH SIZE : %d \n DROPOUT : %.1f \n SAVE_MODEL : %s \n LOG_PATH : %s \n GPU NAME: %s \n GPU NUM %s" \
-                 %(opt.max_iteration , opt.check_interval, opt.d_model, opt.n_layers, opt.n_head, opt.train_batch_size, opt.dropout, opt.save, opt.log, torch.cuda.get_device_name(), opt.cuda_n))
+        f.write(" MAX ITERATION : %d \n CHECK INTERVAL : %d \n D_MODEL : %d \
+                \n N_LAYERS : %d \n N_HEAD : %d \n DROPOUT : %.1f \
+                \n SAVE_MODEL : %s \n LOG_PATH : %s \n GPU NAME: %s \n GPU NUM %s \
+                \n DATASET : \n%s\n%s\n%s\n%s\n%s\n%s" \
+                 %(opt.max_iteration , opt.check_interval, opt.d_model, \
+                 opt.n_layers, opt.n_head, opt.dropout, \
+                 opt.save, opt.log, torch.cuda.get_device_name(), opt.cuda_n, \
+                 opt.train_src, opt.train_trg, opt.valid_src, opt.valid_trg, opt.test_src, opt.test_trg))
         
 
     train(opt)
     #checkpoint_averaging(opt)
+
+    model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
+    model.load_state_dict(torch.load(opt.save_model + "/best.model"))
+
+    test(opt)
 
 if __name__ == "__main__":
     main()

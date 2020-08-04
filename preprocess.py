@@ -37,90 +37,12 @@ def create_batch_sampler(src, trg):
 
 def preprocess(opt):
     
-    """
-    #ASPEC1.5M EN-JA SUBWORD
-    train_src = "../ASPEC1.5M/train.en.16000"
-    train_trg = "../ASPEC1.5M/train.ja.16000"
-    valid_src = "../ASPEC1.5M/dev.en.16000"
-    valid_trg = "../ASPEC1.5M/dev.ja.16000"
-    test_src = "../ASPEC1.5M/test.en.16000"
-    test_trg = "../ASPEC1.5M/test.ja.16000"
-    """
-
-    """
-    #ASPEC1.5M EN-JA WORD
-    train_src = "../ASPEC1.5M/train.en"
-    train_trg = "../ASPEC1.5M/train.ja"
-    valid_src = "../ASPEC1.5M/dev.en"
-    valid_trg = "../ASPEC1.5M/dev.ja"
-    test_src = "../ASPEC1.5M/test.en"
-    test_trg = "../ASPEC1.5M/test.ja"
-    """
-
-    """
-    #ASPEC1.5M JA-EN SUBWORD
-    train_src = "../ASPEC1.5M/train.ja.16000"
-    train_trg = "../ASPEC1.5M/train.en.16000"
-    valid_src = "../ASPEC1.5M/dev.ja.16000"
-    valid_trg = "../ASPEC1.5M/dev.en.16000"
-    test_src = "../ASPEC1.5M/test.ja.16000"
-    test_trg = "../ASPEC1.5M/test.en.16000"
-    """
-
-    """
-    #ASPEC1.5M JA-EN WORD
-    train_src = "../ASPEC1.5M/train.ja"
-    train_trg = "../ASPEC1.5M/train.en"
-    valid_src = "../ASPEC1.5M/dev.ja"
-    valid_trg = "../ASPEC1.5M/dev.en"
-    test_src = "../ASPEC1.5M/test.ja"
-    test_trg = "../ASPEC1.5M/test.en"
-    """
-
-    """
-    #ASPEC1.5M EN-JA SUBWORD1k→1k
-    train_src = "../ASPEC1.5M/train.en.1000"
-    train_trg = "../ASPEC1.5M/train.ja.1000"
-    valid_src = "../ASPEC1.5M/dev.en.1000"
-    valid_trg = "../ASPEC1.5M/dev.ja.1000"
-    test_src = "../ASPEC1.5M/test.en.1000"
-    test_trg = "../ASPEC1.5M/test.ja.1000"
-    """
-
-    """
-    #ASPEC1.5M JA-EN SUBWORD1k→1k
-    train_src = "../ASPEC1.5M/train.ja.1000"
-    train_trg = "../ASPEC1.5M/train.en.1000"
-    valid_src = "../ASPEC1.5M/dev.ja.1000"
-    valid_trg = "../ASPEC1.5M/dev.en.1000"
-    test_src = "../ASPEC1.5M/test.ja.1000"
-    test_trg = "../ASPEC1.5M/test.en.1000"
-    """
-    
-    """
-    #ASPEC1.5M EN-JA SUBWORD1k→16k
-    train_src = "../ASPEC1.5M/train.en.1000"
-    train_trg = "../ASPEC1.5M/train.ja.16000"
-    valid_src = "../ASPEC1.5M/dev.en.1000"
-    valid_trg = "../ASPEC1.5M/dev.ja.16000"
-    test_src = "../ASPEC1.5M/test.en.1000"
-    test_trg = "../ASPEC1.5M/test.ja.16000"
-    """
-
-    #ASPEC1.5M JA-EN SUBWORD1k→16k
-    train_src = "../ASPEC1.5M/train.ja.1000"
-    train_trg = "../ASPEC1.5M/train.en.16000"
-    valid_src = "../ASPEC1.5M/dev.ja.1000"
-    valid_trg = "../ASPEC1.5M/dev.en.16000"
-    test_src = "../ASPEC1.5M/test.ja.1000"
-    test_trg = "../ASPEC1.5M/test.en.16000"
-
     source_vocab_path = "RESULT/" + opt.save + "/vocab/source_vocab"
     target_vocab_path = "RESULT/" + opt.save + "/vocab/target_vocab"
 
     #create vocab
-    source_vocab = GetVocab(train_src)
-    target_vocab = GetVocab(train_trg)
+    source_vocab = GetVocab(opt.train_src)
+    target_vocab = GetVocab(opt.train_trg)
     with open(source_vocab_path, "w") as f:
         for key in source_vocab.keys():
             f.write(key + "\n")
@@ -145,12 +67,12 @@ def preprocess(opt):
     src_size = len(source_dict)
     trg_size = len(target_dict)
 
-    train_source = pre_data.load(train_src , 1, source_dict)
-    train_target = pre_data.load(train_trg , 1, target_dict)
-    valid_source = pre_data.load(valid_src , 1, source_dict)
-    valid_target = pre_data.load(valid_trg , 1, target_dict)
-    test_source = pre_data.load(test_src , 1, source_dict)
-    test_target = pre_data.load(test_trg , 1, target_dict)
+    train_source = pre_data.load(opt.train_src , 1, source_dict)
+    train_target = pre_data.load(opt.train_trg , 1, target_dict)
+    valid_source = pre_data.load(opt.valid_src , 1, source_dict)
+    valid_target = pre_data.load(opt.valid_trg , 1, target_dict)
+    test_source = pre_data.load(opt.test_src , 1, source_dict)
+    test_target = pre_data.load(opt.test_trg , 1, target_dict)
 
     batch_sampler = create_batch_sampler(train_source, train_target)
     #random.shuffle(batch_sampler) #あとでこれは1epochごとにshuffleするようにする
