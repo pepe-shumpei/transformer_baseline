@@ -68,6 +68,14 @@ def main():
     #parser.add_argument('-output_file', type=str, default="output.txt")
     parser.add_argument('-load', type=str, default=None)
     parser.add_argument('-cuda_n', type=str, default="0")
+    
+    parser.add_argument('-train_src', type=str, default=None)
+    parser.add_argument('-train_trg', type=str, default=None)
+    parser.add_argument('-valid_src', type=str, default=None)
+    parser.add_argument('-valid_trg', type=str, default=None)
+    parser.add_argument('-test_src', type=str, default=None)
+    parser.add_argument('-test_trg', type=str, default=None)
+
 
     opt = parser.parse_args()
 

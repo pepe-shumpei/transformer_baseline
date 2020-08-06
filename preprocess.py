@@ -17,14 +17,22 @@ def create_batch_sampler(src, trg):
         indices = []
         num_src_token = 0
         num_trg_token = 0
-        max_token = 5000
+        src_max_length = 0 
+        max_token = 20000
+        
         while True:
             indices.append(sorted_indices[idx])
             num_trg_token += len(trg[sorted_indices[idx]])
+            num_src_token += len(src[sorted_indices[idx]])
+            if src_max_length < len(src[sorted_indices[idx]]):
+                src_max_length = len(src[sorted_indices[idx]])
+
             idx += 1
             if len(src) == idx:
                 break
             if num_trg_token > max_token:
+                break
+            if len(indices)*src_max_length > max_token:
                 break
         
         batch_indices.append(indices)

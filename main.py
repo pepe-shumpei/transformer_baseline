@@ -29,7 +29,7 @@ def parse():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-epoch', type=int, default=20)
-    parser.add_argument('-max_iteration', type=int, default=400000)
+    parser.add_argument('-max_iteration', type=int, default=100000)
     parser.add_argument('-check_interval', type=int, default=1250)
     parser.add_argument('-train_b', '--train_batch_size', type=int, default=100)
     parser.add_argument('-test_b', '--test_batch_size', type=int, default=1)
@@ -161,9 +161,18 @@ def train(opt):
         train_iterator = DataLoader(train_data_set, batch_sampler=batch_sampler, collate_fn=train_data_set.collater)
 
         for iters in train_iterator:
+
             src = iters[0].to(device)
             trg = iters[1].to(device)
+            
 
+            """
+            #batch sizeの確認
+            print("src", src.size(0)*src.size(1))
+            print("trg", trg.size(0)*trg.size(1))
+            print()
+            """
+            
             trg_input = trg[:, :-1]
             src_mask, trg_mask = create_masks(src, trg_input, device, padding_idx)
             optimizer.zero_grad()
@@ -289,6 +298,7 @@ def main():
 
     torch.cuda.set_device(torch.device('cuda:' + opt.cuda_n))
     opt.device = torch.device("cuda:" + opt.cuda_n)
+    os.environ['CUDA_VISIBLE_DEVICES'] = opt.cuda_n
 
     opt.log = "RESULT/" + opt.save + "/log"
     opt.save_model = model_path
@@ -301,6 +311,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1, betas=(0.9, 0.98), eps=1e-9)
     opt.scheduler = LambdaLR(optimizer, lr_lambda=lr_schedule)
     opt.model, opt.optimizer = amp.initialize(model, optimizer, opt_level=opt.level)
+    #opt.model, opt.optimizer = model, optimizer
     
     # write a setting 
     with open(opt.log, "a") as f:
@@ -318,8 +329,8 @@ def main():
     train(opt)
     #checkpoint_averaging(opt)
 
-    model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
-    model.load_state_dict(torch.load(opt.save_model + "/best.model"))
+    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
+    opt.model.load_state_dict(torch.load(opt.save_model + "/best.model"))
 
     test(opt)
 
