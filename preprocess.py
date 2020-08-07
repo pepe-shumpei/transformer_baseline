@@ -5,7 +5,7 @@ from dataset import MyDataset
 
 import random
 
-def create_batch_sampler(src, trg):
+def create_batch_sampler(src, trg, max_token):
     indices = torch.arange(len(src)).tolist()
     random.shuffle(indices)
     indices = sorted(indices, key=lambda idx: len(src[idx]))
@@ -18,7 +18,7 @@ def create_batch_sampler(src, trg):
         num_src_token = 0
         num_trg_token = 0
         src_max_length = 0 
-        max_token = 20000
+        #max_token = 5000
         
         while True:
             indices.append(sorted_indices[idx])
@@ -49,8 +49,8 @@ def preprocess(opt):
     target_vocab_path = "RESULT/" + opt.save + "/vocab/target_vocab"
 
     #create vocab
-    source_vocab = GetVocab(opt.train_src)
-    target_vocab = GetVocab(opt.train_trg)
+    source_vocab = GetVocab(opt.train_src, opt.word_cut)
+    target_vocab = GetVocab(opt.train_trg, opt.word_cut)
     with open(source_vocab_path, "w") as f:
         for key in source_vocab.keys():
             f.write(key + "\n")
@@ -82,7 +82,7 @@ def preprocess(opt):
     test_source = pre_data.load(opt.test_src , 1, source_dict)
     test_target = pre_data.load(opt.test_trg , 1, target_dict)
 
-    batch_sampler = create_batch_sampler(train_source, train_target)
+    batch_sampler = create_batch_sampler(train_source, train_target, opt.batch_max_token)
     #random.shuffle(batch_sampler) #あとでこれは1epochごとにshuffleするようにする
     
     #create dataset and dataloader

@@ -33,6 +33,8 @@ def parse():
     parser.add_argument('-check_interval', type=int, default=1250)
     parser.add_argument('-train_b', '--train_batch_size', type=int, default=100)
     parser.add_argument('-test_b', '--test_batch_size', type=int, default=1)
+    parser.add_argument('-batch_max_token',  type=int, default=10000)
+    parser.add_argument('-word_cut',  type=int, default=50000)
 
     parser.add_argument('-d_model', type=int, default=512)
     parser.add_argument('-d_inner_hid', type=int, default=2048)
@@ -296,9 +298,10 @@ def main():
     os.makedirs(model_ave_path, exist_ok=True)
     os.makedirs(vocab_path, exist_ok=True)
 
-    torch.cuda.set_device(torch.device('cuda:' + opt.cuda_n))
-    opt.device = torch.device("cuda:" + opt.cuda_n)
     os.environ['CUDA_VISIBLE_DEVICES'] = opt.cuda_n
+    #torch.cuda.set_device(torch.device('cuda:' + opt.cuda_n))
+    #opt.device = torch.device("cuda:" + opt.cuda_n)
+    opt.device = torch.device("cuda:0")
 
     opt.log = "RESULT/" + opt.save + "/log"
     opt.save_model = model_path
