@@ -82,15 +82,15 @@ def preprocess(opt):
     test_source = pre_data.load(opt.test_src , 1, source_dict)
     test_target = pre_data.load(opt.test_trg , 1, target_dict)
 
-    batch_sampler = create_batch_sampler(train_source, train_target, opt.batch_max_token)
-    #random.shuffle(batch_sampler) #あとでこれは1epochごとにshuffleするようにする
+    train_batch_sampler = create_batch_sampler(train_source, train_target, opt.batch_max_token)
+    valid_batch_sampler = create_batch_sampler(valid_source, valid_target, opt.batch_max_token)
     
     #create dataset and dataloader
     batch_size = 100
     train_data_set = MyDataset(train_source, train_target)
     #train_iter = DataLoader(train_data_set, batch_sampler=batch_sampler, collate_fn=train_data_set.collater)
     valid_data_set = MyDataset(valid_source, valid_target)
-    valid_iter = DataLoader(valid_data_set, batch_size=batch_size, collate_fn=valid_data_set.collater, shuffle=False)
+    #valid_iter = DataLoader(valid_data_set, batch_size=batch_size, collate_fn=valid_data_set.collater, shuffle=False)
     test_data_set = MyDataset(test_source, test_target)
     test_iter = DataLoader(test_data_set, batch_size=1, collate_fn=valid_data_set.collater, shuffle=False)
 
@@ -100,12 +100,14 @@ def preprocess(opt):
     
 
     #opt.train_iterator = train_iter
-    opt.valid_iterator = valid_iter
+    #opt.valid_iterator = valid_iter
     opt.test_iterator = test_iter
     opt.Dict = translate_dict
     opt.SrcDict = SrcDict
     opt.train_data_set = train_data_set
-    opt.batch_sampler = batch_sampler
+    opt.train_batch_sampler = train_batch_sampler
+    opt.valid_data_set = valid_data_set
+    opt.valid_batch_sampler = valid_batch_sampler
     opt.padding_idx = padding_idx
     opt.trg_sos_idx = trg_sos_idx
     opt.trg_eos_idx = trg_eos_idx

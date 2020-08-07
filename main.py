@@ -94,11 +94,13 @@ def train_epoch(model, optimizer, scheduler, train_data_set, batch_sampler, padd
 """
 
 #lossを計算できるようにする。
-def valid_epoch(model, valid_iterator, padding_idx, device, Dict):
+def valid_epoch(model, valid_data_set, valid_batch_sampler, padding_idx, device, Dict):
     #generator
     model.eval()
     gen_sentence_list = []
     ref_sentence_list = []
+    random.shuffle(valid_batch_sampler) 
+    valid_iterator = DataLoader(valid_data_set, batch_sampler=valid_batch_sampler, collate_fn=valid_data_set.collater)
     with torch.no_grad():
         for iters in valid_iterator:
             src = iters[0].to(device)
@@ -144,8 +146,10 @@ def train(opt):
     optimizer = opt.optimizer
     scheduler = opt.scheduler
     train_data_set = opt.train_data_set
-    batch_sampler = opt.batch_sampler
-    valid_iterator = opt.valid_iterator
+    train_batch_sampler = opt.train_batch_sampler
+    valid_data_set = opt.valid_data_set
+    valid_batch_sampler = opt.valid_batch_sampler
+    #valid_iterator = opt.valid_iterator
     padding_idx = opt.padding_idx
     device = opt.device
     Dict = opt.Dict
@@ -160,8 +164,8 @@ def train(opt):
 
     for epoch in range(opt.epoch):
         model.train()
-        random.shuffle(batch_sampler) 
-        train_iterator = DataLoader(train_data_set, batch_sampler=batch_sampler, collate_fn=train_data_set.collater)
+        random.shuffle(train_batch_sampler) 
+        train_iterator = DataLoader(train_data_set, batch_sampler=train_batch_sampler, collate_fn=train_data_set.collater)
 
         for iters in train_iterator:
 
@@ -199,7 +203,7 @@ def train(opt):
             #validation
             if iteration % opt.check_interval == 0:
                 torch.cuda.empty_cache()
-                valid_bleu = valid_epoch(model, valid_iterator, padding_idx, device, Dict)
+                valid_bleu = valid_epoch(model, valid_data_set, valid_batch_sampler, padding_idx, device, Dict)
                 torch.cuda.empty_cache()
 
                 train_loss = train_loss/opt.check_interval
