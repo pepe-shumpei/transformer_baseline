@@ -105,7 +105,8 @@ def valid_epoch(model, valid_iterator, padding_idx, device, Dict):
             trg = iters[1].to(device)
             trg_input = trg[:, :-1] 
             src_mask, trg_mask = create_masks(src, trg_input, device, padding_idx)
-            seq = model(src, trg_input, src_mask, trg_mask, train=False)
+            max_length = src.size(1) + 50
+            seq = model(src, trg_input, src_mask, trg_mask, max_length, train=False)
             #
             sentence_to_list(gen_sentence_list, seq, Dict)
             sentence_to_list(ref_sentence_list, trg, Dict, ref=True)
@@ -275,7 +276,10 @@ def test_epoch_beam(translator, test_iterator, SrcDict, TrgDict, device, load):
     file = open(PATH , "w", encoding="utf8")
     for iters in test_iterator:
         src = iters[0].to(device)
-        sentence = translator.translate_sentence(src)
+        max_length = src.size(1) + 50
+        if max_length > 400:
+            max_length = 400
+        sentence = translator.translate_sentence(src, max_length)
         generate_sentence(sentence, TrgDict, file) 
     file.close
 
@@ -283,7 +287,7 @@ def test_epoch_beam(translator, test_iterator, SrcDict, TrgDict, device, load):
 def test(opt):
     torch.cuda.empty_cache()
     beamsize = 4
-    max_seq_len = 80
+    max_seq_len = 410
     translator = Translator(opt.model, beamsize, max_seq_len, opt.padding_idx, opt.padding_idx, opt.trg_sos_idx, opt.trg_eos_idx)
     test_epoch_beam(translator, opt.test_iterator, opt.SrcDict, opt.Dict, opt.device, opt.save)
 

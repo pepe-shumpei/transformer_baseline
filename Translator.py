@@ -88,13 +88,14 @@ class Translator(nn.Module):
         return gen_seq, scores
 
 
-    def translate_sentence(self, src_seq):
+    def translate_sentence(self, src_seq, max_length):
         # Only accept batch size equals to 1 in this function.
         # TODO: expand to batch operation.
         #assert src_seq.size(0) == 1
 
         src_pad_idx, trg_eos_idx = self.src_pad_idx, self.trg_eos_idx 
-        max_seq_len, beam_size, alpha = self.max_seq_len, self.beam_size, self.alpha 
+        #max_seq_len, beam_size, alpha = self.max_seq_len, self.beam_size, self.alpha 
+        beam_size, alpha = self.beam_size, self.alpha 
 
         with torch.no_grad():
             #src_mask = get_pad_mask(src_seq, src_pad_idx)

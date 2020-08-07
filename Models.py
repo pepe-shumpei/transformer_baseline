@@ -85,7 +85,7 @@ class Transformer(nn.Module):
         #self.x_logit_scale = (d_model ** -0.5)
         self.out.weight = self.decoder.embed.weight
 
-    def forward(self, src, trg, src_mask, trg_mask, train):
+    def forward(self, src, trg, src_mask, trg_mask, max_length=None, train=True):
         if train:
             e_outputs = self.encoder(src, src_mask)
             d_output = self.decoder(trg, e_outputs, src_mask, trg_mask)
@@ -95,10 +95,8 @@ class Transformer(nn.Module):
 
         else:
             e_outputs = self.encoder(src, src_mask)
-            #trg_len = trg.size(1)
-            trg_len = 80
             out = trg[:,:1]
-            for i in range(1, trg_len):
+            for i in range(1, max_length):
                 trg_mask = no_peak_mask(i).to(out.device)
                 de_out = self.decoder(out , e_outputs, src_mask, trg_mask)          
                 de_out = self.out(de_out)
