@@ -78,6 +78,10 @@ def sentence_to_list(sentence_list, seq, Dict, ref=False):
             word = Dict[seq[b][s+1].item()]
             if word == "<eos>":
                 break
+            #refとoutのunkを別語彙にする
+            elif not ref and word == "<unk>":
+                word = "UNK"
+
             sentence.append(word)
         sentence = remove_at(sentence)
         if ref:
