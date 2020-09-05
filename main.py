@@ -29,11 +29,12 @@ def parse():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-epoch', type=int, default=20)
-    parser.add_argument('-max_iteration', type=int, default=100000)
+    #parser.add_argument('-max_iteration', type=int, default=100000)
     parser.add_argument('-check_interval', type=int, default=1250)
     parser.add_argument('-train_b', '--train_batch_size', type=int, default=100)
     parser.add_argument('-test_b', '--test_batch_size', type=int, default=1)
-    parser.add_argument('-batch_max_token',  type=int, default=10000)
+    #parser.add_argument('-batch_max_token',  type=int, default=10000)
+    parser.add_argument('-batch_size',  type=int, default=50)
     parser.add_argument('-word_cut',  type=int, default=50000)
 
     parser.add_argument('-d_model', type=int, default=512)
@@ -49,6 +50,7 @@ def parse():
     parser.add_argument('-cuda_n', type=str, default="0")
 
     parser.add_argument('-save', type=str, default=None)
+    parser.add_argument('-mode', type=str, default="full")
 
     parser.add_argument('-train_src', type=str, default=None)
     parser.add_argument('-train_trg', type=str, default=None)
@@ -172,14 +174,6 @@ def train(opt):
             src = iters[0].to(device)
             trg = iters[1].to(device)
             
-
-            """
-            #batch sizeの確認
-            print("src", src.size(0)*src.size(1))
-            print("trg", trg.size(0)*trg.size(1))
-            print()
-            """
-            
             trg_input = trg[:, :-1]
             src_mask, trg_mask = create_masks(src, trg_input, device, padding_idx)
             optimizer.zero_grad()
@@ -210,10 +204,11 @@ def train(opt):
                 num_save += 1
                 end_time = time.time()
                 with open(opt.log, "a") as f:
-                    f.write("[Num Save %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" \
-                            % (num_save, train_loss, valid_bleu*100, end_time - start_time))
+                    f.write("[Num Epoch %d] [Num Save %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" \
+                            % (epoch+1, num_save, train_loss, valid_bleu*100, end_time - start_time))
                 
                 #save model
+                torch.save(opt.model.state_dict(), opt.save_model+ "/n_" + str(num_save) + ".model")
                 if valid_bleu > best_bleu:
                     best_bleu = valid_bleu
                     torch.save(opt.model.state_dict(), opt.save_model+"/best.model")
@@ -225,13 +220,15 @@ def train(opt):
                 train_loss = 0
 
             #終了
-            if iteration == opt.max_iteration:
-                return
+            #if iteration == opt.max_iteration:
+            #    return
+
 
 def load_model(model_num, opt):
     #model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
     model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
-    model.load_state_dict(torch.load(opt.save_model + "/model_save" + str(model_num)))
+    model.load_state_dict(torch.load(opt.save_model + "/n_" + str(model_num) + ".model", \
+        map_location=torch.device("cpu")))
     return model
 
 def average_model(end_point, opt):
@@ -239,7 +236,7 @@ def average_model(end_point, opt):
     start_point = end_point -5
     models = [load_model(m, opt) for m in range(start_point, end_point)]
 
-    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
+    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
     state_dict = opt.model.state_dict()
     state_dict0 = models[0].state_dict()
     state_dict1 = models[1].state_dict()
@@ -248,30 +245,38 @@ def average_model(end_point, opt):
     state_dict4 = models[4].state_dict()
 
     for k in state_dict.keys():
-        state_dict[k] = state_dict0[k] + state_dict1[k] + state_dict2[k] + state_dict3[k] + state_dict4[k]
+        state_dict[k] = state_dict0[k] + state_dict1[k] \
+            + state_dict2[k] + state_dict3[k] + state_dict4[k]
         state_dict[k] = state_dict[k]/5            
 
     opt.model.load_state_dict(state_dict)
+    opt.model.to(opt.device)
+
 
 def checkpoint_averaging(opt):
 
     with open(opt.log, "a") as f:
         f.write("\n-----checkpoint averaging-----\n")
+    
+    with torch.no_grad():
+        #max_epoch = int(opt.max_iteration/opt.check_interval)
+        best_bleu=-1
+        for epoch in range(5, opt.epoch+1):
+            print(torch.cuda.max_memory_allocated())
+            print(torch.cuda.max_memory_cached())
+            print(torch.cuda.memory_allocated())
+            torch.cuda.empty_cache()
+            average_model(epoch, opt)
 
-    max_epoch = int(opt.max_iteration/opt.check_interval)
-    best_bleu=-1
-    for epoch in range(5, max_epoch+1):
-        torch.cuda.empty_cache()
-        average_model(epoch, opt)
+            valid_bleu = valid_epoch(opt.model, opt.valid_data_set, \
+                opt.valid_batch_sampler, opt.padding_idx, opt.device, opt.Dict)
 
-        valid_bleu = valid_epoch(opt.model, opt.valid_iterator, opt.padding_idx, opt.device, opt.Dict)
+            if valid_bleu > best_bleu:
+                best_bleu = valid_bleu
+                torch.save(opt.model.state_dict(), opt.save_model+"_ave/best.model")
 
-        if valid_bleu > best_bleu:
-            best_bleu = valid_bleu
-            torch.save(opt.model.state_dict(), opt.save_model+"_ave/best.model")
-       
-        with open(opt.log, "a") as f:
-            f.write("[Epoch %d] [Valid BLEU %.3f]\n" %(epoch, valid_bleu*100))
+            with open(opt.log, "a") as f:
+                f.write("[Epoch %d] [Valid BLEU %.3f]\n" %(epoch, valid_bleu*100))
         
 
 def test_epoch_beam(translator, test_iterator, SrcDict, TrgDict, device, load):
@@ -327,23 +332,23 @@ def main():
     # write a setting 
     with open(opt.log, "a") as f:
         f.write("-----setting-----\n")
-        f.write(" MAX ITERATION : %d \n CHECK INTERVAL : %d \n D_MODEL : %d \
+        f.write("CHECK INTERVAL : %d \n D_MODEL : %d \
                 \n N_LAYERS : %d \n N_HEAD : %d \n DROPOUT : %.1f \
                 \n SAVE_MODEL : %s \n LOG_PATH : %s \n GPU NAME: %s \n GPU NUM %s \
                 \n DATASET : \n%s\n%s\n%s\n%s\n%s\n%s" \
-                 %(opt.max_iteration , opt.check_interval, opt.d_model, \
+                 %(opt.check_interval, opt.d_model, \
                  opt.n_layers, opt.n_head, opt.dropout, \
                  opt.save, opt.log, torch.cuda.get_device_name(), opt.cuda_n, \
                  opt.train_src, opt.train_trg, opt.valid_src, opt.valid_trg, opt.test_src, opt.test_trg))
         
+    if opt.mode == "full" or opt.mode == "train":
+        train(opt)
+        checkpoint_averaging(opt)
 
-    train(opt)
-    #checkpoint_averaging(opt)
-
-    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
-    opt.model.load_state_dict(torch.load(opt.save_model + "/best.model"))
-
-    test(opt)
+    if opt.mode == "full" or opt.mode == "test":
+        opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
+        opt.model.load_state_dict(torch.load(opt.save_model + "/best.model"))
+        test(opt)
 
 if __name__ == "__main__":
     main()

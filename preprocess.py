@@ -1,10 +1,12 @@
 import torch
+
 from preprocessing import *
 from dataset import MyDataset
 
-
 import random
+import numpy as np
 
+"""
 def create_batch_sampler(src, trg, max_token):
     indices = torch.arange(len(src)).tolist()
     random.shuffle(indices)
@@ -41,7 +43,21 @@ def create_batch_sampler(src, trg, max_token):
             break
 
     return batch_indices
+"""
 
+def create_batch_sampler(src, trg, batch_size):
+    indices = torch.arange(len(src)).tolist()
+    random.shuffle(indices)
+    indices = sorted(indices, key=lambda idx: len(src[idx]))
+    sorted_indices = sorted(indices, key=lambda idx: len(trg[idx]))
+
+    sorted_indices = np.array(sorted_indices)
+    n_divide = len(sorted_indices)//batch_size
+    sorted_indices = list(np.array_split(sorted_indices, n_divide))
+    for i in range(len(sorted_indices)):
+        sorted_indices[i] = sorted_indices[i].tolist()
+        
+    return sorted_indices
 
 def preprocess(opt):
     
@@ -82,8 +98,11 @@ def preprocess(opt):
     test_source = pre_data.load(opt.test_src , 1, source_dict)
     test_target = pre_data.load(opt.test_trg , 1, target_dict)
 
-    train_batch_sampler = create_batch_sampler(train_source, train_target, opt.batch_max_token)
-    valid_batch_sampler = create_batch_sampler(valid_source, valid_target, opt.batch_max_token)
+    #train_batch_sampler = create_batch_sampler(train_source, train_target, opt.batch_max_token)
+    #valid_batch_sampler = create_batch_sampler(valid_source, valid_target, opt.batch_max_token)
+
+    train_batch_sampler = create_batch_sampler(train_source, train_target, opt.batch_size)
+    valid_batch_sampler = create_batch_sampler(valid_source, valid_target, opt.batch_size)
     
     #create dataset and dataloader
     batch_size = 100

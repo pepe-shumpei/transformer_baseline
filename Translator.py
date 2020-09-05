@@ -16,7 +16,7 @@ class Translator(nn.Module):
 
         super(Translator, self).__init__()
 
-        self.alpha = 0.7
+        self.alpha = 0.6
         self.beam_size = beam_size
         self.max_seq_len = max_seq_len
         self.src_pad_idx = src_pad_idx
