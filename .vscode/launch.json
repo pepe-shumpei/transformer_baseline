@@ -11,8 +11,11 @@
             "program": "${workspaceRoot}/main.py",
             "console": "integratedTerminal",
             "args" : [
-                "-save=test/en-ja",
+                "-epoch=10",
+                "-save=test2",
                 "-cuda_n=0",
+                "-batch_size=50",
+                "-check_interval=1250",
                 "-d_model=512",
                 "-d_inner_hid=2024",
                 "-n_head=8",

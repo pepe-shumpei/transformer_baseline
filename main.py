@@ -30,8 +30,8 @@ def parse():
 
     parser.add_argument('-epoch', type=int, default=20)
     #parser.add_argument('-max_iteration', type=int, default=100000)
+    #parser.add_argument('-batch_max_token', type=int, default=10000)
     parser.add_argument('-check_interval', type=int, default=1250)
-    parser.add_argument('-train_b', '--train_batch_size', type=int, default=100)
     parser.add_argument('-test_b', '--test_batch_size', type=int, default=1)
     #parser.add_argument('-batch_max_token',  type=int, default=10000)
     parser.add_argument('-batch_size',  type=int, default=50)
@@ -184,9 +184,9 @@ def train(opt):
             #loss = F.cross_entropy(preds.view(-1, preds.size(-1)), ys, ignore_index=padding_idx)
             loss = cal_loss(preds, ys, padding_idx, smoothing=True)
 
-            #loss.backward()
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
+            loss.backward()
+            #with amp.scale_loss(loss, optimizer) as scaled_loss:
+            #    scaled_loss.backward()
 
             optimizer.step()
             scheduler.step()
@@ -225,7 +225,6 @@ def train(opt):
 
 
 def load_model(model_num, opt):
-    #model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
     model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
     model.load_state_dict(torch.load(opt.save_model + "/n_" + str(model_num) + ".model", \
         map_location=torch.device("cpu")))
@@ -236,7 +235,7 @@ def average_model(end_point, opt):
     start_point = end_point -5
     models = [load_model(m, opt) for m in range(start_point, end_point)]
 
-    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
+    #opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
     state_dict = opt.model.state_dict()
     state_dict0 = models[0].state_dict()
     state_dict1 = models[1].state_dict()
@@ -250,7 +249,7 @@ def average_model(end_point, opt):
         state_dict[k] = state_dict[k]/5            
 
     opt.model.load_state_dict(state_dict)
-    opt.model.to(opt.device)
+    #opt.model.to(opt.device)
 
 
 def checkpoint_averaging(opt):
@@ -262,9 +261,6 @@ def checkpoint_averaging(opt):
         #max_epoch = int(opt.max_iteration/opt.check_interval)
         best_bleu=-1
         for epoch in range(5, opt.epoch+1):
-            print(torch.cuda.max_memory_allocated())
-            print(torch.cuda.max_memory_cached())
-            print(torch.cuda.memory_allocated())
             torch.cuda.empty_cache()
             average_model(epoch, opt)
 
@@ -326,8 +322,8 @@ def main():
     #model = nn.DataParallel(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=1, betas=(0.9, 0.98), eps=1e-9)
     opt.scheduler = LambdaLR(optimizer, lr_lambda=lr_schedule)
-    opt.model, opt.optimizer = amp.initialize(model, optimizer, opt_level=opt.level)
-    #opt.model, opt.optimizer = model, optimizer
+    #opt.model, opt.optimizer = amp.initialize(model, optimizer, opt_level=opt.level)
+    opt.model, opt.optimizer = model, optimizer
     
     # write a setting 
     with open(opt.log, "a") as f:
@@ -342,7 +338,7 @@ def main():
                  opt.train_src, opt.train_trg, opt.valid_src, opt.valid_trg, opt.test_src, opt.test_trg))
         
     if opt.mode == "full" or opt.mode == "train":
-        train(opt)
+        #train(opt)
         checkpoint_averaging(opt)
 
     if opt.mode == "full" or opt.mode == "test":
