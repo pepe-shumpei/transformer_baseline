@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "args" : [
                 "-epoch=10",
-                "-save=test2",
+                "-save=test5",
                 "-cuda_n=0",
                 "-batch_size=50",
                 "-check_interval=1250",
