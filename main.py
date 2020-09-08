@@ -28,12 +28,11 @@ torch.cuda.manual_seed_all(seed)
 def parse():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-epoch', type=int, default=20)
-    #parser.add_argument('-max_iteration', type=int, default=100000)
+    parser.add_argument('-epoch', type=int, default=40)
+    parser.add_argument('-max_iteration', type=int, default=100000)
     #parser.add_argument('-batch_max_token', type=int, default=10000)
     parser.add_argument('-check_interval', type=int, default=1250)
     parser.add_argument('-test_b', '--test_batch_size', type=int, default=1)
-    #parser.add_argument('-batch_max_token',  type=int, default=10000)
     parser.add_argument('-batch_size',  type=int, default=50)
     parser.add_argument('-word_cut',  type=int, default=50000)
     parser.add_argument('-accumulation_steps',  type=int, default=1)
@@ -142,14 +141,13 @@ def train(opt):
             iteration += 1
 
             #validation
-            if iteration % opt.check_interval*opt.accumulation_steps == 0:
+            if iteration % opt.check_interval == 0:
                 torch.cuda.empty_cache()
                 valid_bleu = valid_epoch(model, valid_data_set, valid_batch_sampler, padding_idx, device, Dict)
                 torch.cuda.empty_cache()
 
                 train_loss = train_loss/opt.check_interval
                 num_save += 1
-                opt.num_save = num_save
                 end_time = time.time()
                 with open(opt.log, "a") as f:
                     f.write("[Num Epoch %d] [Num Save %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" \
@@ -168,8 +166,8 @@ def train(opt):
                 train_loss = 0
 
             #終了
-            #if iteration == opt.max_iteration:
-            #    return
+            if iteration == opt.max_iteration:
+                return
 
 def average_model(end_point, opt):
     end_point = end_point+1
@@ -192,7 +190,7 @@ def checkpoint_averaging(opt):
         f.write("\n-----checkpoint averaging-----\n")
     
     with torch.no_grad():
-        max_epoch = opt.num_save
+        max_epoch = int(opt.max_iteration/opt.check_interval)
         best_bleu=-1
         for epoch in range(5, max_epoch+1):
             torch.cuda.empty_cache()
@@ -250,7 +248,9 @@ def main():
     opt.save_model = model_path
 
     #gradient accumulation
-    opt.batch_size = opt.batch_size/opt.accumulation_steps
+    opt.batch_size = int(opt.batch_size/opt.accumulation_steps)
+    opt.check_interval = int(opt.check_interval * opt.accumulation_steps)
+    opt.max_iteration *= int(opt.max_iteration * opt.accumulation_steps)
 
     preprocess(opt)
 
@@ -280,7 +280,7 @@ def main():
 
     if opt.mode == "full" or opt.mode == "test":
         opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
-        opt.model.load_state_dict(torch.load(opt.save_model + "/best.model"))
+        opt.model.load_state_dict(torch.load(opt.save_model + "_ave/best.model"))
         test(opt)
 
 if __name__ == "__main__":
