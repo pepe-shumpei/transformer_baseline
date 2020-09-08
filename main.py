@@ -36,6 +36,7 @@ def parse():
     #parser.add_argument('-batch_max_token',  type=int, default=10000)
     parser.add_argument('-batch_size',  type=int, default=50)
     parser.add_argument('-word_cut',  type=int, default=50000)
+    parser.add_argument('-accumulation_steps',  type=int, default=1)
 
     parser.add_argument('-d_model', type=int, default=512)
     parser.add_argument('-d_inner_hid', type=int, default=2048)
@@ -173,35 +174,38 @@ def train(opt):
 
             src = iters[0].to(device)
             trg = iters[1].to(device)
-            
+
             trg_input = trg[:, :-1]
             src_mask, trg_mask = create_masks(src, trg_input, device, padding_idx)
-            optimizer.zero_grad()
+            
             preds = model(src, trg_input, src_mask, trg_mask, train=True)
             preds = preds.view(-1, preds.size(-1))
             ys = trg[:, 1:].contiguous().view(-1)
 
             #loss = F.cross_entropy(preds.view(-1, preds.size(-1)), ys, ignore_index=padding_idx)
             loss = cal_loss(preds, ys, padding_idx, smoothing=True)
-
+            loss = loss/opt.accumulation_steps
             loss.backward()
             #with amp.scale_loss(loss, optimizer) as scaled_loss:
             #    scaled_loss.backward()
-
-            optimizer.step()
-            scheduler.step()
             train_loss += loss.item()
 
+            if (iteration + 1) % opt.accumulation_steps == 0:
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+            
             iteration += 1
 
             #validation
-            if iteration % opt.check_interval == 0:
+            if iteration % opt.check_interval*opt.accumulation_steps == 0:
                 torch.cuda.empty_cache()
                 valid_bleu = valid_epoch(model, valid_data_set, valid_batch_sampler, padding_idx, device, Dict)
                 torch.cuda.empty_cache()
 
                 train_loss = train_loss/opt.check_interval
                 num_save += 1
+                opt.num_save = num_save
                 end_time = time.time()
                 with open(opt.log, "a") as f:
                     f.write("[Num Epoch %d] [Num Save %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" \
@@ -244,9 +248,9 @@ def checkpoint_averaging(opt):
         f.write("\n-----checkpoint averaging-----\n")
     
     with torch.no_grad():
-        #max_epoch = int(opt.max_iteration/opt.check_interval)
+        max_epoch = opt.num_save
         best_bleu=-1
-        for epoch in range(5, opt.epoch+1):
+        for epoch in range(5, max_epoch+1):
             torch.cuda.empty_cache()
             average_model(epoch, opt)
 
@@ -301,6 +305,9 @@ def main():
     opt.log = "RESULT/" + opt.save + "/log"
     opt.save_model = model_path
 
+    #gradient accumulation
+    opt.batch_size = opt.batch_size/opt.accumulation_steps
+
     preprocess(opt)
 
     #model, optimizer, scheduler 
@@ -324,7 +331,7 @@ def main():
                  opt.train_src, opt.train_trg, opt.valid_src, opt.valid_trg, opt.test_src, opt.test_trg))
         
     if opt.mode == "full" or opt.mode == "train":
-        #train(opt)
+        train(opt)
         checkpoint_averaging(opt)
 
     if opt.mode == "full" or opt.mode == "test":
