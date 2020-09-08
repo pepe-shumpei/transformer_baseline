@@ -63,38 +63,6 @@ def parse():
     opt = parser.parse_args()
     
     return opt
-    
-"""
-def train_epoch(model, optimizer, scheduler, train_data_set, batch_sampler, padding_idx, device):
-    model.train()
-    epoch_loss = 0
-    random.shuffle(batch_sampler) 
-    train_iterator = DataLoader(train_data_set, batch_sampler=batch_sampler, collate_fn=train_data_set.collater)
-
-    for iters in train_iterator:
-        src = iters[0].to(device)
-        trg = iters[1].to(device)
-
-        trg_input = trg[:, :-1]
-        src_mask, trg_mask = create_masks(src, trg_input, device, padding_idx)
-        optimizer.zero_grad()
-        preds = model(src, trg_input, src_mask, trg_mask, train=True)
-        preds = preds.view(-1, preds.size(-1))
-        ys = trg[:, 1:].contiguous().view(-1)
-
-        #loss = F.cross_entropy(preds.view(-1, preds.size(-1)), ys, ignore_index=padding_idx)
-        loss = cal_loss(preds, ys, padding_idx, smoothing=True)
-
-        #loss.backward()
-        with amp.scale_loss(loss, optimizer) as scaled_loss:
-            scaled_loss.backward()
-
-        optimizer.step()
-        scheduler.step()
-        epoch_loss += loss.item()
-
-    return epoch_loss/len(train_iterator)
-"""
 
 #lossを計算できるようにする。
 def valid_epoch(model, valid_data_set, valid_batch_sampler, padding_idx, device, Dict):
@@ -117,30 +85,6 @@ def valid_epoch(model, valid_data_set, valid_batch_sampler, padding_idx, device,
             sentence_to_list(ref_sentence_list, trg, Dict, ref=True)
         bleu_score = corpus_bleu(ref_sentence_list, gen_sentence_list)
         return bleu_score
-
-"""
-def train(opt):
-    #train and validation 
-
-    with open(opt.log, "a") as f:
-        f.write("\n-----training-----\n")
-
-    for epoch in range(opt.epoch):
-
-        start_time = time.time()
-
-        train_loss = train_epoch(opt.model, opt.optimizer, opt.scheduler, opt.train_data_set, opt.batch_sampler, opt.padding_idx, opt.device)
-        torch.cuda.empty_cache()
-        valid_bleu = valid_epoch(opt.model, opt.valid_iterator, opt.padding_idx, opt.device, opt.Dict)
-        torch.cuda.empty_cache()
-
-        end_time = time.time()
-
-        with open(opt.log, "a") as f:
-            f.write("[Epoch %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" % (epoch+1, train_loss, valid_bleu*100, end_time - start_time))
-
-        save_model(opt.model, epoch+1, opt.save_model)
-"""
 
 def train(opt):
     #train and validation 
