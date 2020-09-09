@@ -250,7 +250,7 @@ def main():
     #gradient accumulation
     opt.batch_size = int(opt.batch_size/opt.accumulation_steps)
     opt.check_interval = int(opt.check_interval * opt.accumulation_steps)
-    opt.max_iteration *= int(opt.max_iteration * opt.accumulation_steps)
+    opt.max_iteration = int(opt.max_iteration * opt.accumulation_steps)
 
     preprocess(opt)
 

@@ -1,5 +1,4 @@
 import torch
-
 from preprocessing import *
 from dataset import MyDataset
 
@@ -105,7 +104,6 @@ def preprocess(opt):
     valid_batch_sampler = create_batch_sampler(valid_source, valid_target, opt.batch_size)
     
     #create dataset and dataloader
-    batch_size = 100
     train_data_set = MyDataset(train_source, train_target)
     #train_iter = DataLoader(train_data_set, batch_sampler=batch_sampler, collate_fn=train_data_set.collater)
     valid_data_set = MyDataset(valid_source, valid_target)
