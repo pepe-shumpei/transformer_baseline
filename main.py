@@ -247,6 +247,45 @@ def main():
     opt.log = "RESULT/" + opt.save + "/log"
     opt.save_model = model_path
 
+    # write a setting 
+    with open(opt.log, "a") as f:
+        f.write("-----setting-----\n")
+        f.write("MAX ITERATION : %d \
+                \nCHECK INTERVAL : %d \
+                \nBATCH SIZE : %d \
+                \nACCUMULATION STEPS : %d \
+                \nWORD CUT : %d \
+                \nD_MODEL : %d \
+                \nN_LAYERS : %d \
+                \nN_HEAD : %d \
+                \nDROPOUT : %.1f \
+                \nMODE : %s \
+                \nSAVE_MODEL : %s \
+                \nLOG_PATH : %s \
+                \nGPU NAME: %s \
+                \nGPU NUM %s \
+                \nDATASET : \n%s\n%s\n%s\n%s\n%s\n%s" \
+                    %(opt.max_iteration, \
+                    opt.check_interval, \
+                    opt.batch_size, \
+                    opt.accumulation_steps, \
+                    opt.word_cut, \
+                    opt.d_model, \
+                    opt.n_layers, \
+                    opt.n_head, \
+                    opt.dropout, \
+                    opt.mode, \
+                    opt.save, \
+                    opt.log, \
+                    torch.cuda.get_device_name(), \
+                    opt.cuda_n, \
+                    opt.train_src, \
+                    opt.train_trg, \
+                    opt.valid_src, \
+                    opt.valid_trg, \
+                    opt.test_src, \
+                    opt.test_trg))
+
     #gradient accumulation
     opt.batch_size = int(opt.batch_size/opt.accumulation_steps)
     opt.check_interval = int(opt.check_interval * opt.accumulation_steps)
@@ -261,18 +300,6 @@ def main():
     opt.scheduler = LambdaLR(optimizer, lr_lambda=lr_schedule)
     #opt.model, opt.optimizer = amp.initialize(model, optimizer, opt_level=opt.level)
     opt.model, opt.optimizer = model, optimizer
-    
-    # write a setting 
-    with open(opt.log, "a") as f:
-        f.write("-----setting-----\n")
-        f.write("CHECK INTERVAL : %d \n D_MODEL : %d \
-                \n N_LAYERS : %d \n N_HEAD : %d \n DROPOUT : %.1f \
-                \n SAVE_MODEL : %s \n LOG_PATH : %s \n GPU NAME: %s \n GPU NUM %s \
-                \n DATASET : \n%s\n%s\n%s\n%s\n%s\n%s" \
-                 %(opt.check_interval, opt.d_model, \
-                 opt.n_layers, opt.n_head, opt.dropout, \
-                 opt.save, opt.log, torch.cuda.get_device_name(), opt.cuda_n, \
-                 opt.train_src, opt.train_trg, opt.valid_src, opt.valid_trg, opt.test_src, opt.test_trg))
         
     if opt.mode == "full" or opt.mode == "train":
         train(opt)
