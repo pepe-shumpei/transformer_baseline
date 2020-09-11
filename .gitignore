@@ -2,4 +2,5 @@ OUT
 RESULT
 *.out
 *.txt
-experiments
+experiments/old
+experiments/base.sh
