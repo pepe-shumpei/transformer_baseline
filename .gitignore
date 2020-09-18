@@ -3,3 +3,4 @@ RESULT
 *.out
 *.txt
 experiments
+experiments/tutorial.sh
