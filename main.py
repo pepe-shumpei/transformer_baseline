@@ -64,13 +64,11 @@ def parse():
     return opt
 
 #lossを計算できるようにする。
-def valid_epoch(model, valid_data_set, valid_batch_sampler, padding_idx, device, Dict):
+def valid_epoch(model, valid_iterator, padding_idx, device, TrgDict):
     #generator
     model.eval()
     gen_sentence_list = []
     ref_sentence_list = []
-    random.shuffle(valid_batch_sampler) 
-    valid_iterator = DataLoader(valid_data_set, batch_sampler=valid_batch_sampler, collate_fn=valid_data_set.collater)
     with torch.no_grad():
         for iters in valid_iterator:
             src = iters[0].to(device)
@@ -80,8 +78,8 @@ def valid_epoch(model, valid_data_set, valid_batch_sampler, padding_idx, device,
             max_length = src.size(1) + 50
             seq = model(src, trg_input, src_mask, trg_mask, max_length, train=False)
             #
-            sentence_to_list(gen_sentence_list, seq, Dict)
-            sentence_to_list(ref_sentence_list, trg, Dict, ref=True)
+            sentence_to_list(gen_sentence_list, seq, TrgDict)
+            sentence_to_list(ref_sentence_list, trg, TrgDict, ref=True)
         bleu_score = corpus_bleu(ref_sentence_list, gen_sentence_list)
         return bleu_score
 
@@ -91,26 +89,23 @@ def train(opt):
     model = opt.model
     optimizer = opt.optimizer
     scheduler = opt.scheduler
-    train_data_set = opt.train_data_set
-    train_batch_sampler = opt.train_batch_sampler
-    valid_data_set = opt.valid_data_set
-    valid_batch_sampler = opt.valid_batch_sampler
+    #valid_data_set = opt.valid_data_set
+    #valid_batch_sampler = opt.valid_batch_sampler
     padding_idx = opt.padding_idx
     device = opt.device
-    Dict = opt.Dict
+    TrgDict = opt.TrgDict
 
     iteration = 0
     num_save = 0
     train_loss = 0
     start_time = time.time()
-    best_bleu = -1
     with open(opt.log, "a") as f:
         f.write("\n-----training-----\n")
 
     for epoch in range(opt.epoch):
         model.train()
-        random.shuffle(train_batch_sampler) 
-        train_iterator = DataLoader(train_data_set, batch_sampler=train_batch_sampler, collate_fn=train_data_set.collater)
+        random.shuffle(opt.train_batch_sampler) 
+        train_iterator = DataLoader(opt.train_data_set, batch_sampler=opt.train_batch_sampler, collate_fn=opt.train_data_set.collater)
 
         for iters in train_iterator:
 
@@ -140,7 +135,7 @@ def train(opt):
             #validation
             if iteration % opt.check_interval == 0:
                 torch.cuda.empty_cache()
-                valid_bleu = valid_epoch(model, valid_data_set, valid_batch_sampler, padding_idx, device, Dict)
+                valid_bleu = valid_epoch(model, opt.valid_iter, padding_idx, device, TrgDict)
                 torch.cuda.empty_cache()
 
                 train_loss = train_loss/opt.check_interval
@@ -161,31 +156,6 @@ def train(opt):
             if iteration == opt.max_iteration:
                 return
 
-def load_model(model_num, opt):
-    #model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
-    model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
-    model.load_state_dict(torch.load(opt.save_model + "/n_" + str(model_num) + ".model"))
-    return model
-
-def average_model(end_point, opt):
-    end_point = end_point+1
-    start_point = end_point -5
-    models = [load_model(m, opt) for m in range(start_point, end_point)]
-
-    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
-    state_dict = opt.model.state_dict()
-    state_dict0 = models[0].state_dict()
-    state_dict1 = models[1].state_dict()
-    state_dict2 = models[2].state_dict()
-    state_dict3 = models[3].state_dict()
-    state_dict4 = models[4].state_dict()
-
-    for k in state_dict.keys():
-        state_dict[k] = state_dict0[k] + state_dict1[k] + state_dict2[k] + state_dict3[k] + state_dict4[k]
-        state_dict[k] = state_dict[k]/5            
-
-    opt.model.load_state_dict(state_dict)
-
 def test_epoch_beam(translator, test_iterator, SrcDict, TrgDict, device, load):
     
     PATH = "RESULT/" + load + "/output.txt"
@@ -205,7 +175,7 @@ def test(opt):
     beamsize = 4
     max_seq_len = 410
     translator = Translator(opt.model, beamsize, max_seq_len, opt.padding_idx, opt.padding_idx, opt.trg_sos_idx, opt.trg_eos_idx)
-    test_epoch_beam(translator, opt.test_iterator, opt.SrcDict, opt.Dict, opt.device, opt.save)
+    test_epoch_beam(translator, opt.test_iterator, opt.SrcDict, opt.TrgDict, opt.device, opt.save)
 
 def main():
 
@@ -219,8 +189,6 @@ def main():
     os.makedirs(vocab_path, exist_ok=True)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = opt.cuda_n
-    #torch.cuda.set_device(torch.device('cuda:' + opt.cuda_n))
-    #opt.device = torch.device("cuda:" + opt.cuda_n)
     opt.device = torch.device("cuda:0")
 
     opt.log = "RESULT/" + opt.save + "/log"
@@ -279,7 +247,6 @@ def main():
         
     if opt.mode == "full" or opt.mode == "train":
         train(opt)
-        #checkpoint_averaging(opt)
 
     if opt.mode == "full" or opt.mode == "test":
         load_point = opt.max_iteration//opt.check_interval

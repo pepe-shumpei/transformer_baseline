@@ -4,6 +4,11 @@ import torch.nn.functional as F
 import torchtext
 from torchtext.data import Field, BucketIterator
 from torchtext import data
+import numpy as np
+
+import random
+
+from Models import Transformer
 
 
 def no_peak_mask(size):
@@ -27,11 +32,6 @@ def create_masks(src, trg, device, pad_idx):
     else:
         trg_mask = None
     return src_mask, trg_mask
-
-def save_model(model, epoch, path):
-    PATH = path + "/model_save" + str(epoch)
-    #PATH = "./trained_model/model_save" + str(epoch+1)
-    torch.save(model.state_dict(), PATH)
 
 def lr_schedule(step):
     step = step + 1
@@ -116,40 +116,79 @@ def cal_loss(pred, gold, trg_pad_idx, smoothing=False):
     return loss
 
 """
-def preprocess(opt):
+#token数でbatchを作る
+def create_batch_sampler(src, trg, max_token):
+    indices = torch.arange(len(src)).tolist()
+    random.shuffle(indices)
+    indices = sorted(indices, key=lambda idx: len(src[idx]))
+    sorted_indices = sorted(indices, key=lambda idx: len(trg[idx]))
 
-    #データの読み込み、前処理
-    SRC = torchtext.data.Field(init_token = "<sos>", eos_token="<eos>", lower=True)
-    TRG = torchtext.data.Field(init_token = "<sos>", eos_token="<eos>") 
-    train_ds, valid_ds, test_ds = torchtext.data.TabularDataset.splits(
-        path='~/work/Corpus/ASPEC-JE/corpus100k', train='train.tsv',
-        validation='dev.tsv',test='test.tsv', format='tsv',
-        fields=[('src', SRC ), ('trg', TRG)])
+    batch_indices = []
+    idx = 0
+    while True:
+        indices = []
+        num_src_token = 0
+        num_trg_token = 0
+        src_max_length = 0 
+        #max_token = 5000
+        
+        while True:
+            indices.append(sorted_indices[idx])
+            num_trg_token += len(trg[sorted_indices[idx]])
+            num_src_token += len(src[sorted_indices[idx]])
+            if src_max_length < len(src[sorted_indices[idx]]):
+                src_max_length = len(src[sorted_indices[idx]])
 
-    SRC.build_vocab(train_ds, min_freq = 2)
-    TRG.build_vocab(train_ds, min_freq = 2)
+            idx += 1
+            if len(src) == idx:
+                break
+            if num_trg_token > max_token:
+                break
+            if len(indices)*src_max_length > max_token:
+                break
+        
+        batch_indices.append(indices)
 
-    train_iterator, valid_iterator, test_iterator = BucketIterator.splits(
-        (train_ds, valid_ds, test_ds),
-        batch_sizes= (opt.train_batch_size, opt.train_batch_size, opt.test_batch_size),
-        sort=False,
-        device = opt.device)
+        if len(src) == idx:
+            break
 
-    padding_idx = TRG.vocab.stoi["<pad>"]
-    trg_sos_idx = TRG.vocab.stoi["<sos>"]
-    trg_eos_idx = TRG.vocab.stoi["<eos>"]
-    src_size = len(SRC.vocab)
-    trg_size = len(TRG.vocab)
-    
-
-    opt.train_iterator = train_iterator
-    opt.valid_iterator = valid_iterator
-    opt.test_iterator = test_iterator
-    opt.SRC = SRC
-    opt.TRG = TRG
-    opt.padding_idx = padding_idx
-    opt.trg_sos_idx = trg_sos_idx
-    opt.trg_eos_idx = trg_eos_idx
-    opt.src_size = src_size
-    opt.trg_size = trg_size
+    return batch_indices
 """
+
+def create_batch_sampler(src, trg, batch_size):
+    indices = torch.arange(len(src)).tolist()
+    random.shuffle(indices)
+    indices = sorted(indices, key=lambda idx: len(src[idx]))
+    sorted_indices = sorted(indices, key=lambda idx: len(trg[idx]))
+
+    sorted_indices = np.array(sorted_indices)
+    n_divide = len(sorted_indices)//batch_size
+    sorted_indices = list(np.array_split(sorted_indices, n_divide))
+    for i in range(len(sorted_indices)):
+        sorted_indices[i] = sorted_indices[i].tolist()
+        
+    return sorted_indices
+
+def load_model(model_num, opt):
+    model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
+    model.load_state_dict(torch.load(opt.save_model + "/n_" + str(model_num) + ".model"))
+    return model
+
+def average_model(end_point, opt):
+    end_point = end_point+1
+    start_point = end_point -5
+    models = [load_model(m, opt) for m in range(start_point, end_point)]
+
+    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
+    state_dict = opt.model.state_dict()
+    state_dict0 = models[0].state_dict()
+    state_dict1 = models[1].state_dict()
+    state_dict2 = models[2].state_dict()
+    state_dict3 = models[3].state_dict()
+    state_dict4 = models[4].state_dict()
+
+    for k in state_dict.keys():
+        state_dict[k] = state_dict0[k] + state_dict1[k] + state_dict2[k] + state_dict3[k] + state_dict4[k]
+        state_dict[k] = state_dict[k]/5            
+
+    opt.model.load_state_dict(state_dict)
