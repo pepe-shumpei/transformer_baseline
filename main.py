@@ -95,7 +95,6 @@ def train(opt):
     train_batch_sampler = opt.train_batch_sampler
     valid_data_set = opt.valid_data_set
     valid_batch_sampler = opt.valid_batch_sampler
-    #valid_iterator = opt.valid_iterator
     padding_idx = opt.padding_idx
     device = opt.device
     Dict = opt.Dict
@@ -127,7 +126,6 @@ def train(opt):
 
             loss = cal_loss(preds, ys, padding_idx, smoothing=True)
             loss = loss/opt.accumulation_steps
-            #loss.backward()
             with amp.scale_loss(loss, optimizer) as scaled_loss:
                 scaled_loss.backward()
             train_loss += loss.item()
@@ -154,11 +152,6 @@ def train(opt):
                 
                 #save model
                 torch.save(opt.model.state_dict(), opt.save_model+ "/n_" + str(num_save) + ".model")
-                if valid_bleu > best_bleu:
-                    best_bleu = valid_bleu
-                    torch.save(opt.model.state_dict(), opt.save_model+"/best.model")
-                    with open(opt.log, "a") as f:
-                        f.write("save %dth model!!\n" %(num_save))
 
                 model.train()
                 start_time = time.time()
@@ -279,13 +272,10 @@ def main():
 
     preprocess(opt)
 
-    #model, optimizer, scheduler 
     model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
-    #model = nn.DataParallel(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=1, betas=(0.9, 0.98), eps=1e-9)
     opt.scheduler = LambdaLR(optimizer, lr_lambda=lr_schedule)
     opt.model, opt.optimizer = amp.initialize(model, optimizer, opt_level=opt.level)
-    #opt.model, opt.optimizer = model, optimizer
         
     if opt.mode == "full" or opt.mode == "train":
         train(opt)
