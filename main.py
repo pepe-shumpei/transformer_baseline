@@ -32,8 +32,8 @@ def parse():
     parser.add_argument('-max_iteration', type=int, default=100000)
     #parser.add_argument('-batch_max_token', type=int, default=10000)
     parser.add_argument('-check_interval', type=int, default=1250)
-    parser.add_argument('-test_b', '--test_batch_size', type=int, default=1)
     parser.add_argument('-batch_size',  type=int, default=50)
+    parser.add_argument('-valid_batch_size',  type=int, default=50)
     parser.add_argument('-word_cut',  type=int, default=50000)
     parser.add_argument('-accumulation_steps',  type=int, default=1)
 
@@ -134,8 +134,9 @@ def train(opt):
                     f.write("[Num Epoch %d] [Num Save %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" \
                             % (epoch+1, num_save, train_loss, valid_bleu*100, end_time - start_time))
                 
-                #save model
-                torch.save(opt.model.state_dict(), opt.save_model+ "/n_" + str(num_save) + ".model")
+                if num_save >= opt.max_iteration//opt.check_interval - 5 :
+                    #save model
+                    torch.save(opt.model.state_dict(), opt.save_model+ "/n_" + str(num_save) + ".model")
 
                 opt.model.train()
                 start_time = time.time()
@@ -144,6 +145,30 @@ def train(opt):
             #終了
             if iteration == opt.max_iteration:
                 return
+
+def load_model(model_num, opt):
+    model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
+    model.load_state_dict(torch.load(opt.save_model + "/n_" + str(model_num) + ".model"))
+    return model
+
+def average_model(end_point, opt):
+    end_point = end_point+1
+    start_point = end_point -5
+    models = [load_model(m, opt) for m in range(start_point, end_point)]
+
+    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
+    state_dict = opt.model.state_dict()
+    state_dict0 = models[0].state_dict()
+    state_dict1 = models[1].state_dict()
+    state_dict2 = models[2].state_dict()
+    state_dict3 = models[3].state_dict()
+    state_dict4 = models[4].state_dict()
+
+    for k in state_dict.keys():
+        state_dict[k] = state_dict0[k] + state_dict1[k] + state_dict2[k] + state_dict3[k] + state_dict4[k]
+        state_dict[k] = state_dict[k]/5            
+
+    opt.model.load_state_dict(state_dict)
 
 def test_epoch_beam(translator, test_iterator, SrcDict, TrgDict, device, load):
     

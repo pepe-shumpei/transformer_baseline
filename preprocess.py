@@ -46,12 +46,12 @@ def preprocess(opt):
     test_target = pre_data.load(opt.test_trg , 1, target_dict)
 
     train_batch_sampler = create_batch_sampler(train_source, train_target, opt.batch_size)
-    valid_batch_sampler = create_batch_sampler(valid_source, valid_target, opt.batch_size)
+    valid_batch_sampler = create_batch_sampler(valid_source, valid_target, opt.valid_batch_size)
     
     #create dataset and dataloader
     train_data_set = MyDataset(train_source, train_target)
     valid_data_set = MyDataset(valid_source, valid_target)
-    valid_iter = DataLoader(valid_data_set, batch_size=50, collate_fn=valid_data_set.collater, shuffle=False)
+    valid_iter = DataLoader(valid_data_set, batch_sampler=valid_batch_sampler, collate_fn=valid_data_set.collater)
     test_data_set = MyDataset(test_source, test_target)
     test_iter = DataLoader(test_data_set, batch_size=1, collate_fn=test_data_set.collater, shuffle=False)
 
@@ -66,8 +66,6 @@ def preprocess(opt):
     opt.SrcDict = SrcDict
     opt.train_data_set = train_data_set
     opt.train_batch_sampler = train_batch_sampler
-    opt.valid_data_set = valid_data_set
-    opt.valid_batch_sampler = valid_batch_sampler
     opt.padding_idx = padding_idx
     opt.trg_sos_idx = trg_sos_idx
     opt.trg_eos_idx = trg_eos_idx

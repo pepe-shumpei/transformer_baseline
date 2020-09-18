@@ -1,15 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchtext
-from torchtext.data import Field, BucketIterator
-from torchtext import data
 import numpy as np
 
 import random
-
-from Models import Transformer
-
 
 def no_peak_mask(size):
     mask = torch.triu(torch.ones(size, size), diagonal=1)
@@ -165,27 +159,3 @@ def create_batch_sampler(src, trg, batch_size):
         sorted_indices[i] = sorted_indices[i].tolist()
         
     return sorted_indices
-
-def load_model(model_num, opt):
-    model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
-    model.load_state_dict(torch.load(opt.save_model + "/n_" + str(model_num) + ".model"))
-    return model
-
-def average_model(end_point, opt):
-    end_point = end_point+1
-    start_point = end_point -5
-    models = [load_model(m, opt) for m in range(start_point, end_point)]
-
-    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
-    state_dict = opt.model.state_dict()
-    state_dict0 = models[0].state_dict()
-    state_dict1 = models[1].state_dict()
-    state_dict2 = models[2].state_dict()
-    state_dict3 = models[3].state_dict()
-    state_dict4 = models[4].state_dict()
-
-    for k in state_dict.keys():
-        state_dict[k] = state_dict0[k] + state_dict1[k] + state_dict2[k] + state_dict3[k] + state_dict4[k]
-        state_dict[k] = state_dict[k]/5            
-
-    opt.model.load_state_dict(state_dict)
