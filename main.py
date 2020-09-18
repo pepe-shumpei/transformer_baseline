@@ -85,61 +85,50 @@ def valid_epoch(model, valid_iterator, padding_idx, device, TrgDict):
 
 def train(opt):
     #train and validation 
-
-    model = opt.model
-    optimizer = opt.optimizer
-    scheduler = opt.scheduler
-    #valid_data_set = opt.valid_data_set
-    #valid_batch_sampler = opt.valid_batch_sampler
-    padding_idx = opt.padding_idx
-    device = opt.device
-    TrgDict = opt.TrgDict
-
     iteration = 0
-    num_save = 0
     train_loss = 0
     start_time = time.time()
     with open(opt.log, "a") as f:
         f.write("\n-----training-----\n")
 
     for epoch in range(opt.epoch):
-        model.train()
+        opt.model.train()
         random.shuffle(opt.train_batch_sampler) 
         train_iterator = DataLoader(opt.train_data_set, batch_sampler=opt.train_batch_sampler, collate_fn=opt.train_data_set.collater)
 
         for iters in train_iterator:
 
-            src = iters[0].to(device)
-            trg = iters[1].to(device)
+            src = iters[0].to(opt.device)
+            trg = iters[1].to(opt.device)
 
             trg_input = trg[:, :-1]
-            src_mask, trg_mask = create_masks(src, trg_input, device, padding_idx)
+            src_mask, trg_mask = create_masks(src, trg_input, opt.device, opt.padding_idx)
             
-            preds = model(src, trg_input, src_mask, trg_mask, train=True)
+            preds = opt.model(src, trg_input, src_mask, trg_mask, train=True)
             preds = preds.view(-1, preds.size(-1))
             ys = trg[:, 1:].contiguous().view(-1)
 
-            loss = cal_loss(preds, ys, padding_idx, smoothing=True)
+            loss = cal_loss(preds, ys, opt.padding_idx, smoothing=True)
             loss = loss/opt.accumulation_steps
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
+            with amp.scale_loss(loss, opt.optimizer) as scaled_loss:
                 scaled_loss.backward()
             train_loss += loss.item()
 
             if (iteration + 1) % opt.accumulation_steps == 0:
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
+                opt.optimizer.step()
+                opt.scheduler.step()
+                opt.optimizer.zero_grad()
             
             iteration += 1
 
             #validation
             if iteration % opt.check_interval == 0:
                 torch.cuda.empty_cache()
-                valid_bleu = valid_epoch(model, opt.valid_iter, padding_idx, device, TrgDict)
+                valid_bleu = valid_epoch(opt.model, opt.valid_iter, opt.padding_idx, opt.device, opt.TrgDict)
                 torch.cuda.empty_cache()
 
                 train_loss = train_loss/opt.check_interval
-                num_save += 1
+                num_save = iteration // opt.check_interval
                 end_time = time.time()
                 with open(opt.log, "a") as f:
                     f.write("[Num Epoch %d] [Num Save %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" \
@@ -148,7 +137,7 @@ def train(opt):
                 #save model
                 torch.save(opt.model.state_dict(), opt.save_model+ "/n_" + str(num_save) + ".model")
 
-                model.train()
+                opt.model.train()
                 start_time = time.time()
                 train_loss = 0
 

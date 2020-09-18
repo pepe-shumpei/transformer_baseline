@@ -16,11 +16,8 @@ def no_peak_mask(size):
     mask = mask == 0
     return mask.unsqueeze(0) 
 
-
 def create_masks(src, trg, device, pad_idx):
     
-    #src_mask = (src != opt.src_pad).unsqueeze(-2)
-    #1 -> padding_idxに修正する
     src_mask = (src != pad_idx).unsqueeze(-2)
 
     if trg is not None:
