@@ -125,12 +125,11 @@ def train(opt):
             preds = preds.view(-1, preds.size(-1))
             ys = trg[:, 1:].contiguous().view(-1)
 
-            #loss = F.cross_entropy(preds.view(-1, preds.size(-1)), ys, ignore_index=padding_idx)
             loss = cal_loss(preds, ys, padding_idx, smoothing=True)
             loss = loss/opt.accumulation_steps
-            loss.backward()
-            #with amp.scale_loss(loss, optimizer) as scaled_loss:
-            #    scaled_loss.backward()
+            #loss.backward()
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
             train_loss += loss.item()
 
             if (iteration + 1) % opt.accumulation_steps == 0:
@@ -169,43 +168,30 @@ def train(opt):
             if iteration == opt.max_iteration:
                 return
 
+def load_model(model_num, opt):
+    #model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
+    model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
+    model.load_state_dict(torch.load(opt.save_model + "/n_" + str(model_num) + ".model"))
+    return model
+
 def average_model(end_point, opt):
     end_point = end_point+1
     start_point = end_point -5
-    state_dict_list = [torch.load(opt.save_model + "/n_" + str(n) + ".model", \
-        map_location=torch.device("cpu")) for n in range(start_point, end_point)]
+    models = [load_model(m, opt) for m in range(start_point, end_point)]
 
+    opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
     state_dict = opt.model.state_dict()
+    state_dict0 = models[0].state_dict()
+    state_dict1 = models[1].state_dict()
+    state_dict2 = models[2].state_dict()
+    state_dict3 = models[3].state_dict()
+    state_dict4 = models[4].state_dict()
+
     for k in state_dict.keys():
-        state_dict[k] = state_dict_list[0][k] + state_dict_list[1][k] \
-            + state_dict_list[2][k] + state_dict_list[3][k] + state_dict_list[4][k]
+        state_dict[k] = state_dict0[k] + state_dict1[k] + state_dict2[k] + state_dict3[k] + state_dict4[k]
         state_dict[k] = state_dict[k]/5            
 
     opt.model.load_state_dict(state_dict)
-
-
-def checkpoint_averaging(opt):
-
-    with open(opt.log, "a") as f:
-        f.write("\n-----checkpoint averaging-----\n")
-    
-    with torch.no_grad():
-        max_epoch = int(opt.max_iteration/opt.check_interval)
-        best_bleu=-1
-        for epoch in range(5, max_epoch+1):
-            torch.cuda.empty_cache()
-            average_model(epoch, opt)
-
-            valid_bleu = valid_epoch(opt.model, opt.valid_data_set, \
-                opt.valid_batch_sampler, opt.padding_idx, opt.device, opt.Dict)
-
-            if valid_bleu > best_bleu:
-                best_bleu = valid_bleu
-                torch.save(opt.model.state_dict(), opt.save_model+"_ave/best.model")
-
-            with open(opt.log, "a") as f:
-                f.write("[Epoch %d] [Valid BLEU %.3f]\n" %(epoch, valid_bleu*100))
-        
 
 def test_epoch_beam(translator, test_iterator, SrcDict, TrgDict, device, load):
     
@@ -298,16 +284,16 @@ def main():
     #model = nn.DataParallel(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=1, betas=(0.9, 0.98), eps=1e-9)
     opt.scheduler = LambdaLR(optimizer, lr_lambda=lr_schedule)
-    #opt.model, opt.optimizer = amp.initialize(model, optimizer, opt_level=opt.level)
-    opt.model, opt.optimizer = model, optimizer
+    opt.model, opt.optimizer = amp.initialize(model, optimizer, opt_level=opt.level)
+    #opt.model, opt.optimizer = model, optimizer
         
     if opt.mode == "full" or opt.mode == "train":
         train(opt)
-        checkpoint_averaging(opt)
+        #checkpoint_averaging(opt)
 
     if opt.mode == "full" or opt.mode == "test":
-        opt.model = Transformer(opt.src_size, opt.trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(opt.device)
-        opt.model.load_state_dict(torch.load(opt.save_model + "_ave/best.model"))
+        load_point = opt.max_iteration//opt.check_interval
+        average_model(load_point, opt)
         test(opt)
 
 if __name__ == "__main__":
