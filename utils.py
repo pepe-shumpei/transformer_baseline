@@ -90,6 +90,7 @@ def cal_loss(pred, gold, trg_pad_idx, smoothing=False):
     ''' Calculate cross entropy loss, apply label smoothing if needed. '''
 
     gold = gold.contiguous().view(-1)
+    n_tokens = gold.ne(trg_pad_idx).sum().item()
 
     if smoothing:
         eps = 0.1
@@ -101,7 +102,7 @@ def cal_loss(pred, gold, trg_pad_idx, smoothing=False):
 
         non_pad_mask = gold.ne(trg_pad_idx)
         loss = -(one_hot * log_prb).sum(dim=1)
-        loss = loss.masked_select(non_pad_mask).sum()  # average later
+        loss = loss.masked_select(non_pad_mask).sum() / n_tokens
     else:
         loss = F.cross_entropy(pred, gold, ignore_index=trg_pad_idx, reduction='sum')
     return loss
