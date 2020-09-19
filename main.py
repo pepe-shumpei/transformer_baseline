@@ -132,7 +132,7 @@ def train(opt):
                 num_save = iteration // opt.check_interval
                 end_time = time.time()
                 with open(opt.log, "a") as f:
-                    f.write("[Num Epoch %d] [Num Save %d] [Train Loss %d] [Valid BLEU %.3f] [TIME %.3f]\n" \
+                    f.write("[Num Epoch %d] [Num Save %d] [Train Loss %.5f] [Valid BLEU %.3f] [TIME %.3f]\n" \
                             % (epoch+1, num_save, train_loss, valid_bleu*100, end_time - start_time))
                 
                 if num_save >= opt.max_iteration//opt.check_interval - 5 :

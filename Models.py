@@ -13,7 +13,7 @@ def get_clones(module, N):
 
 
 class PositionalEncoder(nn.Module):
-    def __init__(self, d_model, max_seq_len = 1500, dropout = 0.1):
+    def __init__(self, d_model, max_seq_len = 300, dropout = 0.1):
         super().__init__()
         self.d_model = d_model
         self.dropout = nn.Dropout(dropout)
