@@ -36,7 +36,6 @@ class PositionalEncoder(nn.Module):
         #add constant to embedding
         seq_len = x.size(1)
         pe = self.pe[:,:seq_len]
-        pe.to(x.device)
         x = x + pe
         return self.dropout(x)
 

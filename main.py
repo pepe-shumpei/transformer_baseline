@@ -93,8 +93,9 @@ def train(opt):
 
     for epoch in range(opt.epoch):
         opt.model.train()
-        random.shuffle(opt.train_batch_sampler) 
-        train_iterator = DataLoader(opt.train_data_set, batch_sampler=opt.train_batch_sampler, collate_fn=opt.train_data_set.collater)
+        random.shuffle(opt.train_batch_sampler)
+        train_iterator = DataLoader(opt.train_data_set, batch_sampler=opt.train_batch_sampler, \
+            collate_fn=opt.train_data_set.collater)
 
         for iters in train_iterator:
 

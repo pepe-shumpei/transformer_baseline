@@ -38,6 +38,10 @@ def preprocess(opt):
     src_size = len(source_dict)
     trg_size = len(target_dict)
 
+    padding_idx = source_dict["<pad>"]
+    trg_sos_idx = source_dict["<sos>"]
+    trg_eos_idx = source_dict["<eos>"]
+
     train_source = pre_data.load(opt.train_src , 1, source_dict)
     train_target = pre_data.load(opt.train_trg , 1, target_dict)
     valid_source = pre_data.load(opt.valid_src , 1, source_dict)
@@ -55,15 +59,8 @@ def preprocess(opt):
     test_data_set = MyDataset(test_source, test_target)
     test_iter = DataLoader(test_data_set, batch_size=1, collate_fn=test_data_set.collater, shuffle=False)
 
-    padding_idx = source_dict["<pad>"]
-    trg_sos_idx = source_dict["<sos>"]
-    trg_eos_idx = source_dict["<eos>"]
-    
-
     opt.valid_iter = valid_iter
     opt.test_iterator = test_iter
-    opt.TrgDict = TrgDict
-    opt.SrcDict = SrcDict
     opt.train_data_set = train_data_set
     opt.train_batch_sampler = train_batch_sampler
     opt.padding_idx = padding_idx
@@ -71,3 +68,6 @@ def preprocess(opt):
     opt.trg_eos_idx = trg_eos_idx
     opt.src_size = src_size
     opt.trg_size = trg_size
+    opt.SrcDict = SrcDict
+    opt.TrgDict = TrgDict
+    
