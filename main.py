@@ -171,7 +171,7 @@ def average_model(end_point, opt):
 
     opt.model.load_state_dict(state_dict)
 
-def test_epoch_beam(translator, test_iterator, SrcDict, TrgDict, device, load):
+def test_epoch(translator, test_iterator, SrcDict, TrgDict, device, load):
     
     PATH = "RESULT/" + load + "/output.txt"
     file = open(PATH , "w", encoding="utf8")
@@ -190,7 +190,7 @@ def test(opt):
     beamsize = 4
     max_seq_len = 410
     translator = Translator(opt.model, beamsize, max_seq_len, opt.padding_idx, opt.padding_idx, opt.trg_sos_idx, opt.trg_eos_idx)
-    test_epoch_beam(translator, opt.test_iterator, opt.SrcDict, opt.TrgDict, opt.device, opt.save)
+    test_epoch(translator, opt.test_iterator, opt.SrcDict, opt.TrgDict, opt.device, opt.save)
 
 def main():
 
