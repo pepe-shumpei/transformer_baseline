@@ -1,54 +1,44 @@
 import torch
-from preprocessing import *
-from dataset import MyDataset
-from utils import create_batch_sampler
+from torch.utils.data import DataLoader
 
 import random
 import numpy as np
+
+from preprocessing import Preprocess
+from dataset import MyDataset
+from utils import create_batch_sampler
 
 def preprocess(opt):
     
     source_vocab_path = "RESULT/" + opt.save + "/vocab/source_vocab"
     target_vocab_path = "RESULT/" + opt.save + "/vocab/target_vocab"
 
-    #create vocab
-    source_vocab = GetVocab(opt.train_src, opt.word_cut)
-    target_vocab = GetVocab(opt.train_trg, opt.word_cut)
-    with open(source_vocab_path, "w") as f:
-        for key in source_vocab.keys():
-            f.write(key + "\n")
+    SRC = Preprocess()
+    TRG = Preprocess()
 
-    with open(target_vocab_path, "w") as f:
-        for key in target_vocab.keys():
-            f.write(key + "\n")
-   
-    #create dict
-    pre_data = Preprocess()
-    source_dict = pre_data.getVocab(source_vocab_path)
-    target_dict = pre_data.getVocab(target_vocab_path)
+    train_source , valid_source, test_source = \
+        SRC.load(train=opt.train_src,
+                valid=opt.valid_src, 
+                test = opt.test_src, 
+                mode=1, 
+                vocab_file=source_vocab_path)
+    
+    train_target , valid_target, test_target = \
+        TRG.load(train=opt.train_trg,
+                valid=opt.valid_trg, 
+                test = opt.test_trg, 
+                mode=1, 
+                vocab_file=target_vocab_path)
 
-    TrgDict = {}
-    for key, value in target_dict.items():
-        TrgDict[value] = key
+    SrcDict = SRC.reverse_dict
+    TrgDict = TRG.reverse_dict
+    src_size = len(SRC.dict)
+    trg_size = len(TRG.dict)
+    padding_idx = SRC.dict["<pad>"]
+    trg_sos_idx = TRG.dict["<sos>"]
+    trg_eos_idx = TRG.dict["<eos>"]
 
-    SrcDict = {}
-    for key, value in source_dict.items():
-        SrcDict[value] = key
-
-    src_size = len(source_dict)
-    trg_size = len(target_dict)
-
-    padding_idx = source_dict["<pad>"]
-    trg_sos_idx = source_dict["<sos>"]
-    trg_eos_idx = source_dict["<eos>"]
-
-    train_source = pre_data.load(opt.train_src , 1, source_dict)
-    train_target = pre_data.load(opt.train_trg , 1, target_dict)
-    valid_source = pre_data.load(opt.valid_src , 1, source_dict)
-    valid_target = pre_data.load(opt.valid_trg , 1, target_dict)
-    test_source = pre_data.load(opt.test_src , 1, source_dict)
-    test_target = pre_data.load(opt.test_trg , 1, target_dict)
-
+    #create batch sampler
     train_batch_sampler = create_batch_sampler(train_source, train_target, opt.batch_size)
     valid_batch_sampler = create_batch_sampler(valid_source, valid_target, opt.valid_batch_size)
     
