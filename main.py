@@ -196,10 +196,8 @@ def main():
 
     opt = parse()
     model_path = "RESULT/"+ opt.save + "/model"
-    model_ave_path = "RESULT/" + opt.save + "/model_ave"
     vocab_path = "RESULT/" + opt.save + "/vocab"
     os.makedirs(model_path, exist_ok=True)
-    os.makedirs(model_ave_path, exist_ok=True)
     os.makedirs(vocab_path, exist_ok=True)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = opt.cuda_n
