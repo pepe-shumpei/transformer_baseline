@@ -16,14 +16,14 @@ def preprocess(opt):
     SRC = Preprocess()
     TRG = Preprocess()
 
-    train_source , valid_source, test_source = \
+    train_source, valid_source, test_source = \
         SRC.load(train=opt.train_src,
                 valid=opt.valid_src, 
                 test = opt.test_src, 
                 mode=1, 
                 vocab_file=source_vocab_path)
     
-    train_target , valid_target, test_target = \
+    train_target, valid_target, test_target = \
         TRG.load(train=opt.train_trg,
                 valid=opt.valid_trg, 
                 test = opt.test_trg, 

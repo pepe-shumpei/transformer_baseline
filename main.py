@@ -12,10 +12,10 @@ import os
 import random
 from nltk.translate.bleu_score import corpus_bleu
 
-from Models import Transformer
+from model.Models import Transformer
 from utils import *
 from preprocess import preprocess
-from Translator import Translator
+from model.Translator import Translator
 
 # cuDNNを使用しない  
 seed = 88

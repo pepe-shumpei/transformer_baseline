@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn 
 import torch.nn.functional as F
-from Layers import EncoderLayer, DecoderLayer
+from model.Layers import EncoderLayer, DecoderLayer
 
 import copy
 import math
