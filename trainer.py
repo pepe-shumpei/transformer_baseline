@@ -18,7 +18,6 @@ class Trainer:
     def __init__(
         self,
         model,
-        loss,
         optimizer,
         train_data_set,
         train_batch_sampler,
@@ -29,7 +28,6 @@ class Trainer:
         pad_idx
     ):
         self.model = model
-        self.loss = loss
         self.optimizer = optimizer
         self.train_data_set = train_data_set
         self.train_batch_sampler = train_batch_sampler

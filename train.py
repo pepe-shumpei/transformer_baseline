@@ -17,7 +17,7 @@ from preprocessing import Preprocess
 from dataset import MyDataset
 from trainer import Trainer
 from model.Translator import Translator
-from create_batch_sampler import create_sentence_batch_sampler
+from create_batch_sampler import create_sentence_batch_sampler, create_token_batch_sampler
 from lr_scheduler import lr_schedule
 
 
@@ -59,7 +59,7 @@ def parse():
 
     parser.add_argument('--epoch', type=int, default=40)
     parser.add_argument('--max_steps', type=int, default=100000)
-    #parser.add_argument('--batch_max_token', type=int, default=10000)
+    parser.add_argument('--batch_max_token', type=int, default=10000)
     parser.add_argument('--check_interval', type=int, default=1250)
     parser.add_argument('--batch_size',  type=int, default=50)
     parser.add_argument('--valid_batch_size',  type=int, default=50)
@@ -147,6 +147,7 @@ def main():
 
     #gradient accumulation
     opt.batch_size = int(opt.batch_size/opt.accumulation_steps)
+    opt.batch_max_token = int(opt.batch_max_token/opt.accumulation_steps)
     opt.check_interval = int(opt.check_interval * opt.accumulation_steps)
     opt.max_steps = int(opt.max_steps * opt.accumulation_steps)
 
@@ -180,7 +181,11 @@ def main():
     trg_eos_idx = TRG.dict["<eos>"]
 
     #create batch sampler with the number of sentence
-    train_batch_sampler = create_sentence_batch_sampler(train_source, train_target, opt.batch_size)
+    #train_batch_sampler = create_sentence_batch_sampler(train_source, train_target, opt.batch_size)
+    #valid_batch_sampler = create_sentence_batch_sampler(valid_source, valid_target, opt.valid_batch_size)
+
+    #create batch sampler with the number of sentence
+    train_batch_sampler = create_token_batch_sampler(train_source, train_target, opt.batch_max_token)
     valid_batch_sampler = create_sentence_batch_sampler(valid_source, valid_target, opt.valid_batch_size)
     
     #create dataset and dataloader
