@@ -4,14 +4,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from utils import no_peak_mask, create_masks
+from utils import no_peak_mask, create_masks, generate_sentence
 
 class Translator(nn.Module):
     ''' Load a trained model and translate in beam search fashion. '''
 
     def __init__(
-            self, model, beam_size, max_seq_len,
-            src_pad_idx, trg_pad_idx, trg_bos_idx, trg_eos_idx):
+            self, 
+            model, 
+            test_data_loader,
+            TrgDict,
+            device,
+            beam_size, 
+            max_seq_len,
+            src_pad_idx, 
+            trg_pad_idx, 
+            trg_bos_idx, 
+            trg_eos_idx):
         
 
         super(Translator, self).__init__()
@@ -24,6 +33,9 @@ class Translator(nn.Module):
         self.trg_eos_idx = trg_eos_idx
 
         self.model = model
+        self.test_data_loader = test_data_loader
+        self.device = device
+        self.TrgDict = TrgDict
         self.model.eval()
 
         self.register_buffer('init_seq', torch.LongTensor([[trg_bos_idx]]))
@@ -41,8 +53,6 @@ class Translator(nn.Module):
         #trg_mask = get_subsequent_mask(trg_seq)
         trg_seq_len = trg_seq.size(1)
         trg_mask = no_peak_mask(trg_seq_len).to(enc_output.device)
-        #dec_output, *_ = self.model.decoder(trg_seq, trg_mask, enc_output, src_mask)
-        #dec_output, *_ = self.model.decoder(trg_seq, enc_output, src_mask, trg_mask)
         dec_output = self.model.decoder(trg_seq.to(enc_output.device), enc_output, src_mask, trg_mask)
         return F.softmax(self.model.out(dec_output), dim=-1)
 
@@ -88,7 +98,7 @@ class Translator(nn.Module):
         return gen_seq, scores
 
 
-    def translate_sentence(self, src_seq, max_seq_len):
+    def _translate_sentence(self, src_seq, max_seq_len):
         # Only accept batch size equals to 1 in this function.
         # TODO: expand to batch operation.
         #assert src_seq.size(0) == 1
@@ -120,3 +130,15 @@ class Translator(nn.Module):
                     break
         #return gen_seq[ans_idx][:seq_lens[ans_idx]].tolist()
         return gen_seq[ans_idx][:seq_lens[ans_idx]]
+    
+    def test(self, save):
+        PATH = "RESULT/" + save + "/output.txt"
+        with open(PATH , "w", encoding="utf8") as f:
+            for iters in self.test_data_loader:
+                src = iters[0].to(self.device)
+                max_length = src.size(1) + 50
+                if max_length > 400:
+                    max_length = 400
+                sentence = self._translate_sentence(src, max_length)
+                generate_sentence(sentence, self.TrgDict, f) 
+        

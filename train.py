@@ -17,7 +17,7 @@ from preprocessing import Preprocess
 from dataset import MyDataset
 from trainer import Trainer
 from model.Translator import Translator
-from utils import *
+from create_batch_sampler import create_sentence_batch_sampler
 from lr_scheduler import lr_schedule
 
 
@@ -28,6 +28,31 @@ random.seed(seed)
 torch.manual_seed(seed)  
 # cuda でのRNGを初期化  
 torch.cuda.manual_seed_all(seed)  
+
+def load_model(model_num, opt, src_size, trg_size):
+    model = Transformer(src_size, trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout)
+    model.load_state_dict(torch.load(opt.save_model + "/n_" + str(model_num) + ".model"))
+    return model
+
+def average_model(end_point, opt, src_size, trg_size, device):
+    end_point = end_point+1
+    start_point = end_point -5
+    models = [load_model(m, opt, src_size, trg_size) for m in range(start_point, end_point)]
+
+    model = Transformer(src_size, trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(device)
+    state_dict = model.state_dict()
+    state_dict0 = models[0].state_dict()
+    state_dict1 = models[1].state_dict()
+    state_dict2 = models[2].state_dict()
+    state_dict3 = models[3].state_dict()
+    state_dict4 = models[4].state_dict()
+
+    for k in state_dict.keys():
+        state_dict[k] = state_dict0[k] + state_dict1[k] + state_dict2[k] + state_dict3[k] + state_dict4[k]
+        state_dict[k] = state_dict[k]/5            
+
+    model.load_state_dict(state_dict)
+    return model
 
 def parse():
     parser = argparse.ArgumentParser()
@@ -51,7 +76,7 @@ def parse():
     parser.add_argument('--dropout', type=float, default=0.1)
 
     parser.add_argument('--level', type=str, default="O1")
-    parser.add_argument('--cuda_n', type=str, default="0")
+    parser.add_argument('--gpu', type=str, default="0")
 
     parser.add_argument('--save', type=str, default=None)
     parser.add_argument('--mode', type=str, default="full")
@@ -75,7 +100,7 @@ def main():
     os.makedirs(model_path, exist_ok=True)
     os.makedirs(vocab_path, exist_ok=True)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = opt.cuda_n
+    os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpu
     device = torch.device("cuda:0")
 
     opt.log = "RESULT/" + opt.save + "/log"
@@ -112,7 +137,7 @@ def main():
                     opt.save, \
                     opt.log, \
                     torch.cuda.get_device_name(), \
-                    opt.cuda_n, \
+                    opt.gpu, \
                     opt.train_src, \
                     opt.train_trg, \
                     opt.valid_src, \
@@ -154,9 +179,9 @@ def main():
     trg_sos_idx = TRG.dict["<sos>"]
     trg_eos_idx = TRG.dict["<eos>"]
 
-    #create batch sampler
-    train_batch_sampler = create_batch_sampler(train_source, train_target, opt.batch_size)
-    valid_batch_sampler = create_batch_sampler(valid_source, valid_target, opt.valid_batch_size)
+    #create batch sampler with the number of sentence
+    train_batch_sampler = create_sentence_batch_sampler(train_source, train_target, opt.batch_size)
+    valid_batch_sampler = create_sentence_batch_sampler(valid_source, valid_target, opt.valid_batch_size)
     
     #create dataset and dataloader
     train_data_set = MyDataset(train_source, train_target)
@@ -165,33 +190,49 @@ def main():
     test_data_set = MyDataset(test_source, test_target)
     test_data_loader = DataLoader(test_data_set, batch_size=1, collate_fn=test_data_set.collater, shuffle=False)
 
-    model = Transformer(src_size, trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1, betas=(0.9, 0.98), eps=1e-9)
-    scheduler = LambdaLR(optimizer, lr_lambda=lr_schedule)
-    model, optimizer = amp.initialize(model, optimizer, opt_level=opt.level)
-
-    trainer = Trainer(
-        model = model,
-        loss = None,
-        optimizer = optimizer,
-        train_data_set = train_data_set,
-        train_batch_sampler = train_batch_sampler,
-        valid_data_loader = valid_data_loader,
-        lr_scheduler = scheduler,
-        device = device,
-        TrgDict = TrgDict,
-        pad_idx = pad_idx
-        )
-        
+    #train
     if opt.mode == "full" or opt.mode == "train":
+        model = Transformer(src_size, trg_size, opt.d_model, opt.n_layers, opt.n_head, opt.dropout).to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1, betas=(0.9, 0.98), eps=1e-9)
+        scheduler = LambdaLR(optimizer, lr_lambda=lr_schedule)
+        model, optimizer = amp.initialize(model, optimizer, opt_level=opt.level)
+
+        trainer = Trainer(
+            model = model,
+            optimizer = optimizer,
+            train_data_set = train_data_set,
+            train_batch_sampler = train_batch_sampler,
+            valid_data_loader = valid_data_loader,
+            lr_scheduler = scheduler,
+            device = device,
+            TrgDict = TrgDict,
+            pad_idx = pad_idx
+            )
+            
         trainer.train(opt.epoch, opt)
 
-    """
+    #test
     if opt.mode == "full" or opt.mode == "test":
-        load_point = opt.max_step//opt.check_interval
-        average_model(load_point, opt)
-        test(opt)
-    """
+        load_point = opt.max_steps//opt.check_interval
+        model = average_model(load_point, opt, src_size, trg_size, device)
+
+        torch.cuda.empty_cache()
+        beam_size = 4
+        max_seq_len = 410
+        translator = Translator(
+            model = model,
+            test_data_loader = test_data_loader,
+            TrgDict = TrgDict,
+            device = device,
+            beam_size =  beam_size,
+            max_seq_len = max_seq_len,
+            src_pad_idx = pad_idx,
+            trg_pad_idx = pad_idx,
+            trg_bos_idx = trg_sos_idx,
+            trg_eos_idx = trg_eos_idx)
+        
+        translator.test(opt.save)
+    
 
 if __name__ == "__main__":
     main()

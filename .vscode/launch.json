@@ -12,9 +12,9 @@
             "console": "integratedTerminal",
             "args" : [
                 "--epoch=20",
-                "--save=test/test10",
-                "--cuda_n=0",
-                "--mode=train",
+                "--save=test/test/en-ja",
+                "--gpu=0",
+                "--mode=test",
                 "--batch_size=50",
                 "--accumulation_steps=1",
                 "--max_step=10000",
