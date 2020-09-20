@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+
 from model.Sublayers import FeedForward, MultiHeadAttention
 
 class EncoderLayer(nn.Module):

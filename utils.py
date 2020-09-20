@@ -1,9 +1,10 @@
+import random
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-import random
 
 def no_peak_mask(size):
     mask = torch.triu(torch.ones(size, size), diagonal=1)
@@ -23,12 +24,6 @@ def create_masks(src, trg, device, pad_idx):
     else:
         trg_mask = None
     return src_mask, trg_mask
-
-def lr_schedule(step):
-    step = step + 1
-    a = 512 ** (-0.5)
-    b = min([step ** (-0.5), step*4000**(-1.5)])
-    return a * b 
 
 #batch_size = 1のみ   
 def generate_sentence(seq, Dict, file):
@@ -85,27 +80,6 @@ def remove_at(sentence_list):
     sentence_str = sentence_str.replace("@@ ","")
     sentence_list = sentence_str.split()
     return sentence_list
-
-def cal_loss(pred, gold, trg_pad_idx, smoothing=False):
-    ''' Calculate cross entropy loss, apply label smoothing if needed. '''
-
-    gold = gold.contiguous().view(-1)
-    n_tokens = gold.ne(trg_pad_idx).sum().item()
-
-    if smoothing:
-        eps = 0.1
-        n_class = pred.size(1)
-
-        one_hot = torch.zeros_like(pred).scatter(1, gold.view(-1, 1), 1)
-        one_hot = one_hot * (1 - eps) + (1 - one_hot) * eps / (n_class - 1)
-        log_prb = F.log_softmax(pred, dim=1)
-
-        non_pad_mask = gold.ne(trg_pad_idx)
-        loss = -(one_hot * log_prb).sum(dim=1)
-        loss = loss.masked_select(non_pad_mask).sum() / n_tokens
-    else:
-        loss = F.cross_entropy(pred, gold, ignore_index=trg_pad_idx, reduction='sum')
-    return loss
 
 """
 #token数でbatchを作る

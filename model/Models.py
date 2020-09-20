@@ -1,11 +1,11 @@
-import torch
-import torch.nn as nn 
-import torch.nn.functional as F
-from model.Layers import EncoderLayer, DecoderLayer
-
 import copy
 import math
 
+import torch
+import torch.nn as nn 
+import torch.nn.functional as F
+
+from model.Layers import EncoderLayer, DecoderLayer
 from utils import no_peak_mask
 
 def get_clones(module, N):

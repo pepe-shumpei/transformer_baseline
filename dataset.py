@@ -1,10 +1,9 @@
 import os
-import torch
 import sys
 import argparse
 
+import torch
 from torch.utils.data.dataset import Dataset
-from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
 
 class MyDataset(Dataset):
