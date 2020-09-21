@@ -81,14 +81,12 @@ class Transformer(nn.Module):
                 nn.init.xavier_uniform_(param)
 
         #重み共有
-        #self.x_logit_scale = (d_model ** -0.5)
         self.out.weight = self.decoder.embed.weight
 
     def forward(self, src, trg, src_mask, trg_mask, max_length=None, train=True):
         if train:
             e_outputs = self.encoder(src, src_mask)
             d_output = self.decoder(trg, e_outputs, src_mask, trg_mask)
-            #output = self.out(d_output) * self.x_logit_scale
             output = self.out(d_output) 
             return output
 
