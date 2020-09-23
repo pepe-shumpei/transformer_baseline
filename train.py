@@ -181,12 +181,12 @@ def main():
     trg_eos_idx = TRG.dict["<eos>"]
 
     #create batch sampler with the number of sentence
-    #train_batch_sampler = create_sentence_batch_sampler(train_source, train_target, opt.batch_size)
-    #valid_batch_sampler = create_sentence_batch_sampler(valid_source, valid_target, opt.valid_batch_size)
-
-    #create batch sampler with the number of sentence
-    train_batch_sampler = create_token_batch_sampler(train_source, train_target, opt.batch_max_token)
+    train_batch_sampler = create_sentence_batch_sampler(train_source, train_target, opt.batch_size)
     valid_batch_sampler = create_sentence_batch_sampler(valid_source, valid_target, opt.valid_batch_size)
+
+    #create batch sampler with the number of token
+    #train_batch_sampler = create_token_batch_sampler(train_source, train_target, opt.batch_max_token)
+    #valid_batch_sampler = create_sentence_batch_sampler(valid_source, valid_target, opt.valid_batch_size)
     
     #create dataset and dataloader
     train_data_set = MyDataset(train_source, train_target)
